@@ -292,6 +292,22 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npm test` → 54 passing tests, no regressions ✅
   - Verified creation and formatting of `docs/COST_ANALYSIS.md` ✅
 
+---
+
+## 20. User-Friendly Date Picker Shortcuts & Steppers (2026-06-29)
+* **Status:** Complete.
+* **Decisions & Implementation Details:**
+  - Implemented inline day-by-day stepping (◀ / ▶ buttons) flanking the date picker input.
+  - Implemented quick action shortcut buttons (📅 Today, ⬅️ Yesterday, 🎲 Random) underneath the date picker.
+  - Clicking any shortcut/stepper immediately updates the state and triggers the APOD fetch / ASCII generation automatically (no extra click on "Generate Cosmic Art" needed).
+  - Used local time zone date parsing and arithmetic inside `adjustDateByDays` to ensure full timezone safety (no off-by-one errors shifting dates to UTC mid-calculations).
+  - Configured bounds: stepper buttons disable at today's date and the APOD start date (`1995-06-16`).
+* **Verification Results:**
+  - `npm test` → 54 passing tests, no regressions ✅
+  - `npm run build` → Compiled successfully ✅
+  - Browser subagent verified manual behavior (Random, Yesterday, Steppers and disabled state limits) ✅
+
+
 
 
 
