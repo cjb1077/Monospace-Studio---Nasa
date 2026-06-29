@@ -27,7 +27,7 @@ All interface surfaces follow a modern dark-mode aesthetic with rich gradients a
 The **Studio Dashboard** (`/`) is the central workspace where users fetch the Astronomy Picture of the Day, review settings, run ASCII conversion, and review AI-generated captions and fun facts.
 
 ### 2.1 Screenshot Mockup
-![Main Studio Dashboard Mockup](docs/superpowers/specs/images/studio_dashboard.png)
+![Main Studio Dashboard Mockup](file:///d:/AI%20Bootcamp/week3-cjb1077/docs/superpowers/specs/images/studio_dashboard.png)
 
 ### 2.2 Component Breakdown
 
@@ -69,7 +69,7 @@ The **Studio Dashboard** (`/`) is the central workspace where users fetch the As
 The **User Gallery** (`/gallery`) page presents saved renders in a card-based grid layout, enabling discovery, sharing, and management of saved ASCII pieces.
 
 ### 3.1 Screenshot Mockup
-![User Gallery Page Mockup](docs/superpowers/specs/images/user_gallery.png)
+![User Gallery Page Mockup](file:///d:/AI%20Bootcamp/week3-cjb1077/docs/superpowers/specs/images/user_gallery.png)
 
 ### 3.2 Component Breakdown
 
