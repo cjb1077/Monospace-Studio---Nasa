@@ -108,3 +108,16 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `git status` → clean working tree after commit `ef7df68` ✅
 * **Commit:** `feat: scaffold Next.js App Router TypeScript app with Vitest (resolves #1, #2, #3)`
 
+---
+
+## 8. Phase 1 — NASA APOD Integration (2026-06-29)
+* **Status:** In Progress (Task 1.1 Complete).
+* **Findings & Decisions:**
+  - **Task 1.1 [Issue 5]** Complete. Created `src/lib/types.ts` for interfaces and `src/lib/nasa/apod.ts` containing the custom error classes, date validators, and fetch function. Added a 10s fetch timeout and typed error mappings.
+  - Added unit test suite `tests/nasa.test.ts` to fully cover validation and response handling under Vitest.
+  - Added CLI smoke test runner `scripts/test-fetch-apod.ts` to test live calls.
+* **Verification Results:**
+  - `npx vitest tests/nasa.test.ts --run` → 11 tests passed ✅
+  - `npx tsx scripts/test-fetch-apod.ts` (with NASA DEMO_KEY) → Live APOD details fetched and logged successfully ✅
+
+
