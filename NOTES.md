@@ -144,4 +144,11 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - Using `sharp` for image decoding (native Node.js performance, supports JPEG/PNG/GIF/WebP, outputs raw pixel buffers for deterministic luminance mapping).
   - Luminance formula: standard NTSC/Rec.601 weighted: `0.299*R + 0.587*G + 0.114*B` (perceptual).
   - Character aspect ratio correction: terminal chars are ~2:1 (height:width), so `rows = Math.round(height / 2)` when scaling.
-  - `density` parameter scales luminance non-linearly: `adjustedLum = Math.pow(lum, 1 / density)` (density < 1 compresses mid-tones toward light; density > 1 pushes toward dark).
+  - `density` parameter scales luminance non-linearly: `adjustedLum = Math.pow(lum, density)` (density 0.9 pushes mid-tones darker; density 0.4 lifts toward white).
+* **Verification Results:**
+  - `npx vitest tests/ascii.test.ts --run` → 16 tests passed (standard, fine, blocky charSets; invert; density; maxWidth; row count) ✅
+  - `npx vitest --run` → 35 tests passed (all suites) ✅
+  - `npx tsc --noEmit` → 0 errors ✅
+  - `GET /api/apod?date=2024-01-01` → `{ ok: true, ascii: "<6049 chars>", style: { charSet: "standard", density: 0.6, invert: false }, aiStyleUsed: false, aiCaptionUsed: false }` ✅
+* **Commit:** `feat: implement ASCII converter with TDD + wire into /api/apod (resolves #9, #10)`
+
