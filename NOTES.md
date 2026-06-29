@@ -126,6 +126,11 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npx tsx scripts/test-fetch-apod.ts` (with NASA DEMO_KEY) → Live APOD details fetched and logged successfully ✅
 
   - **Task 1.3 [Issue 7]** Complete. Implemented `downloadImage(url)` in `src/lib/nasa/apod.ts` using native `fetch` with `AbortController` (10s timeout) and content-type validation (requiring `image/`). Added 4 corresponding unit tests to `tests/nasa.test.ts` covering successful download, invalid content-type, non-200 HTTP statuses, and timeouts.
-* **Verification Results:**
+* **Verification Results (Tasks 1.1–1.3):**
   - `npx vitest tests/nasa.test.ts --run` → 18 tests passed (including 4 new downloadImage tests) ✅
   - `npx vitest --run` → 19 tests passed ✅
+
+  - **Task 1.4 [Issue 8]** Complete. Created `src/app/api/apod/route.ts` — the `GET /api/apod` Next.js App Router handler. Returns `source` metadata only (title, date, imageUrl, copyright, explanation) plus `usedFallbackImage` flag. ASCII conversion and LLM features will be wired in Phases 2 and 3. Full typed error handling delegating to `ApodError` codes (BAD_DATE, NASA_DOWN, NASA_RATE_LIMIT, SERVER). TypeScript compile clean (`npx tsc --noEmit` → 0 errors).
+* **Verification Results (Task 1.4):**
+  - `GET /api/apod?date=2024-01-01` → `{ ok: true, source: { title: "NGC 1232: A Grand Design Spiral Galaxy", date: "2024-01-01", ... }, usedFallbackImage: false }` ✅
+  - NASA API key corrected in `.env.local` — UUID format replaced with correct alphanumeric key ✅
