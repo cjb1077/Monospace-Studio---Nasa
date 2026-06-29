@@ -124,6 +124,66 @@
   }
 }
 
+@media (max-width: 640px) {
+  .header {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .brand {
+    font-size: 1.15rem;
+  }
+  .nav {
+    gap: 0.6rem;
+  }
+  .navLink {
+    font-size: 0.875rem;
+  }
+  .userStatus {
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+  .authBtn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  .main {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+  .viewportContainer {
+    height: 360px;
+  }
+  .loadingContainer {
+    height: 360px;
+  }
+  .emptyState {
+    height: 360px;
+  }
+  .skeletonViewport {
+    height: 360px;
+  }
+  .modalOverlay {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav {
+    gap: 0.4rem;
+  }
+  .navLink {
+    font-size: 0.8rem;
+  }
+  .brand {
+    font-size: 1rem;
+  }
+  .main {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+}
+
 /* Glassmorphism Cards */
 .glassCard {
   background: var(--glass-bg);
