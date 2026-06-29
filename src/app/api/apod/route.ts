@@ -38,6 +38,40 @@ function mapCachedRowToResponse(row: any): ApodApiResponse {
 }
 
 /**
+ * Helper to download and convert an image to ASCII using sharp and convertImageToAscii.
+ */
+async function performConversion(
+  imageUrl: string,
+  usedFallbackImage: boolean,
+  style: { charSet: "standard" | "fine" | "blocky"; density: number; invert: boolean }
+): Promise<string> {
+  let imageBuffer: Buffer;
+  if (usedFallbackImage) {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const fallbackPath = path.join(process.cwd(), "public", "starry.png");
+    imageBuffer = await fs.readFile(fallbackPath);
+  } else {
+    imageBuffer = await downloadImage(imageUrl);
+  }
+
+  const { data, info } = await sharp(imageBuffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const rgbaBuffer = Buffer.from(data);
+  return convertImageToAscii(rgbaBuffer, {
+    width: info.width,
+    height: info.height,
+    charSet: style.charSet,
+    density: style.density,
+    invert: style.invert,
+    maxWidth: ASCII_MAX_WIDTH,
+  });
+}
+
+/**
  * GET /api/apod?date=YYYY-MM-DD
  *
  * Integrates caching check, APOD fetch with walkback, nested cache check,
@@ -47,7 +81,45 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = req.nextUrl;
   const dateStr = searchParams.get("date") ?? undefined;
 
-  let supabase;
+  const charSetParam = searchParams.get("charSet");
+  const densityParam = searchParams.get("density");
+  const invertParam = searchParams.get("invert");
+
+  // Validate overrides if present
+  let overrideStyle: { charSet?: "standard" | "fine" | "blocky"; density?: number; invert?: boolean } | undefined;
+  if (charSetParam || densityParam || invertParam) {
+    overrideStyle = {};
+    if (charSetParam) {
+      if (charSetParam === "standard" || charSetParam === "fine" || charSetParam === "blocky") {
+        overrideStyle.charSet = charSetParam;
+      } else {
+        const errBody: ApiErrorResponse = {
+          ok: false,
+          error: "Invalid charSet parameter. Must be standard, fine, or blocky.",
+          code: "BAD_DATE",
+        };
+        return NextResponse.json(errBody, { status: 400 });
+      }
+    }
+    if (densityParam) {
+      const d = parseFloat(densityParam);
+      if (!isNaN(d) && d >= 0.4 && d <= 0.9) {
+        overrideStyle.density = d;
+      } else {
+        const errBody: ApiErrorResponse = {
+          ok: false,
+          error: "Invalid density parameter. Must be a number between 0.4 and 0.9.",
+          code: "BAD_DATE",
+        };
+        return NextResponse.json(errBody, { status: 400 });
+      }
+    }
+    if (invertParam) {
+      overrideStyle.invert = invertParam === "true";
+    }
+  }
+
+  let supabase: any;
   try {
     supabase = getSupabaseAdmin();
   } catch (dbErr) {
@@ -65,7 +137,23 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         .single();
 
       if (cached && !cacheErr) {
-        return NextResponse.json(mapCachedRowToResponse(cached), { status: 200 });
+        const responseData = mapCachedRowToResponse(cached);
+        if (overrideStyle) {
+          const mergedStyle = {
+            charSet: overrideStyle.charSet ?? responseData.style!.charSet,
+            density: overrideStyle.density ?? responseData.style!.density,
+            invert: overrideStyle.invert ?? responseData.style!.invert,
+          };
+          const overriddenAscii = await performConversion(
+            responseData.source!.imageUrl,
+            !!responseData.usedFallbackImage,
+            mergedStyle
+          );
+          responseData.ascii = overriddenAscii;
+          responseData.style = mergedStyle;
+          responseData.aiStyleUsed = false;
+        }
+        return NextResponse.json(responseData, { status: 200 });
       }
     } catch (err) {
       console.warn("Error querying database cache. Proceeding with generation:", err);
@@ -87,7 +175,23 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           .single();
 
         if (cachedResolved && !resolvedCacheErr) {
-          return NextResponse.json(mapCachedRowToResponse(cachedResolved), { status: 200 });
+          const responseData = mapCachedRowToResponse(cachedResolved);
+          if (overrideStyle) {
+            const mergedStyle = {
+              charSet: overrideStyle.charSet ?? responseData.style!.charSet,
+              density: overrideStyle.density ?? responseData.style!.density,
+              invert: overrideStyle.invert ?? responseData.style!.invert,
+            };
+            const overriddenAscii = await performConversion(
+              responseData.source!.imageUrl,
+              !!responseData.usedFallbackImage,
+              mergedStyle
+            );
+            responseData.ascii = overriddenAscii;
+            responseData.style = mergedStyle;
+            responseData.aiStyleUsed = false;
+          }
+          return NextResponse.json(responseData, { status: 200 });
         }
       } catch (err) {
         console.warn("Error querying database cache for resolved date. Proceeding:", err);
@@ -116,14 +220,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       imageBuffer = await downloadImage(apod.url);
     }
 
-    // 6. Decode and Convert Image to ASCII
+    // 6. Decode Image
     const { data, info } = await sharp(imageBuffer)
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
 
     const rgbaBuffer = Buffer.from(data);
-    const ascii = convertImageToAscii(rgbaBuffer, {
+
+    // Convert with recommended settings for DB caching
+    const recommendedAscii = convertImageToAscii(rgbaBuffer, {
       width: info.width,
       height: info.height,
       charSet: style.charSet,
@@ -132,22 +238,44 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       maxWidth: ASCII_MAX_WIDTH,
     });
 
+    // Determine final style and ASCII for the response
+    let finalAscii = recommendedAscii;
+    let finalStyle = style;
+    let finalAiStyleUsed = aiStyleUsed;
+
+    if (overrideStyle) {
+      finalStyle = {
+        charSet: overrideStyle.charSet ?? style.charSet,
+        density: overrideStyle.density ?? style.density,
+        invert: overrideStyle.invert ?? style.invert,
+      };
+      finalAscii = convertImageToAscii(rgbaBuffer, {
+        width: info.width,
+        height: info.height,
+        charSet: finalStyle.charSet,
+        density: finalStyle.density,
+        invert: finalStyle.invert,
+        maxWidth: ASCII_MAX_WIDTH,
+      });
+      finalAiStyleUsed = false;
+    }
+
     // 7. Feature 2: Get Recommended Caption and Fun Fact
     const { caption, funFact, aiCaptionUsed } = await recommendCaption(apod.title, apod.explanation);
 
     const body: ApodApiResponse = {
       ok: true,
       source,
-      ascii,
-      style,
+      ascii: finalAscii,
+      style: finalStyle,
       caption,
       funFact,
-      aiStyleUsed,
+      aiStyleUsed: finalAiStyleUsed,
       aiCaptionUsed,
       usedFallbackImage: !!apod.usedFallbackImage,
     };
 
-    // 8. Write Generated Result to Cache
+    // 8. Write Recommended Result to Cache
     if (supabase) {
       try {
         await supabase.from("cached_apods").insert({
@@ -156,7 +284,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           explanation: source.explanation,
           image_url: source.imageUrl,
           copyright: source.copyright,
-          ascii,
+          ascii: recommendedAscii,
           char_set: style.charSet,
           density: style.density,
           invert: style.invert,

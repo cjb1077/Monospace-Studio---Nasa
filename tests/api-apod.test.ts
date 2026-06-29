@@ -252,4 +252,128 @@ describe("GET /api/apod handler", () => {
     expect(mockRecommendStyle).not.toHaveBeenCalled();
     expect(mockConvertImageToAscii).not.toHaveBeenCalled();
   });
+
+  it("should return 400 when invalid style parameters are provided", async () => {
+    const req = new NextRequest("http://localhost/api/apod?date=2026-06-28&charSet=invalid");
+    const res = await GET(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.error).toContain("Invalid charSet parameter");
+
+    const req2 = new NextRequest("http://localhost/api/apod?date=2026-06-28&density=1.5");
+    const res2 = await GET(req2);
+    expect(res2.status).toBe(400);
+    const body2 = await res2.json();
+    expect(body2.ok).toBe(false);
+    expect(body2.error).toContain("Invalid density parameter");
+  });
+
+  it("should return overridden ASCII on cache hit when overrides are specified", async () => {
+    const mockCachedRow = {
+      source_date: "2026-06-28",
+      title: "Cached Galaxy",
+      explanation: "A cached explanation.",
+      image_url: "https://example.com/cached.jpg",
+      copyright: "NASA/Hubble",
+      ascii: ".*Cached ASCII*.",
+      char_set: "fine",
+      density: 0.85,
+      invert: true,
+      caption: "Cached Caption",
+      fun_fact: "Cached Fun Fact",
+      ai_style_used: true,
+      ai_caption_used: true,
+      used_fallback_image: false,
+    };
+
+    mockSingle.mockResolvedValue({ data: mockCachedRow, error: null });
+    mockDownloadImage.mockResolvedValue(Buffer.from("image-bytes"));
+    mockConvertImageToAscii.mockReturnValue("### OVERRIDDEN ASCII ###");
+
+    const req = new NextRequest("http://localhost/api/apod?date=2026-06-28&charSet=blocky&density=0.5&invert=false");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.ascii).toBe("### OVERRIDDEN ASCII ###");
+    expect(body.style.charSet).toBe("blocky");
+    expect(body.style.density).toBe(0.5);
+    expect(body.style.invert).toBe(false);
+    expect(body.aiStyleUsed).toBe(false);
+
+    expect(mockDownloadImage).toHaveBeenCalledWith("https://example.com/cached.jpg");
+    expect(mockConvertImageToAscii).toHaveBeenCalledWith(expect.any(Buffer), expect.objectContaining({
+      charSet: "blocky",
+      density: 0.5,
+      invert: false,
+    }));
+  });
+
+  it("should generate overrides for response but save recommended styles to database cache on cache miss", async () => {
+    // Cache miss for requested and resolved dates
+    mockSingle.mockResolvedValueOnce({ data: null, error: { code: "PGRST116" } });
+    mockSingle.mockResolvedValueOnce({ data: null, error: { code: "PGRST116" } });
+
+    // NASA metadata
+    const mockApod = {
+      date: "2026-06-28",
+      title: "Galaxy Star",
+      explanation: "A bright galaxy in space.",
+      url: "https://example.com/star.jpg",
+      copyright: "NASA",
+      media_type: "image",
+      service_version: "v1",
+    };
+    mockFetchApod.mockResolvedValue(mockApod);
+    mockDownloadImage.mockResolvedValue(Buffer.from("galaxy-bytes"));
+
+    // Mock style recommender (Feature 1)
+    mockRecommendStyle.mockResolvedValue({
+      style: { charSet: "fine", density: 0.8, invert: true },
+      aiStyleUsed: true,
+    });
+
+    // Mock ASCII convert
+    mockConvertImageToAscii.mockImplementation((_, opts) => {
+      if (opts.charSet === "fine") {
+        return "=== RECOMMENDED ASCII ===";
+      }
+      return "=== OVERRIDDEN ASCII ===";
+    });
+
+    // Mock caption recommender (Feature 2)
+    mockRecommendCaption.mockResolvedValue({
+      caption: "Caption Text",
+      funFact: "Fun Fact Text",
+      aiCaptionUsed: true,
+    });
+
+    mockInsert.mockResolvedValue({ error: null });
+
+    const req = new NextRequest("http://localhost/api/apod?date=2026-06-28&charSet=standard&density=0.6&invert=false");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.ascii).toBe("=== OVERRIDDEN ASCII ===");
+    expect(body.style.charSet).toBe("standard");
+    expect(body.style.density).toBe(0.6);
+    expect(body.style.invert).toBe(false);
+    expect(body.aiStyleUsed).toBe(false);
+
+    // Assert database insert was called with RECOMMENDED values
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      source_date: "2026-06-28",
+      ascii: "=== RECOMMENDED ASCII ===",
+      char_set: "fine",
+      density: 0.8,
+      invert: true,
+      ai_style_used: true,
+    }));
+  });
 });
+

@@ -210,5 +210,20 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npx vitest run` → 45 tests passed ✅
   - `curl` queries to `/api/apod?date=2024-01-01` cache hit latency is ~176ms ✅
 
+---
+
+## 14. Phase 4 — Studio UI (2026-06-29)
+* **Status:** Phase 4.1 Complete (Issue #15 closed).
+* **Decisions:**
+  - Standardized custom style parameters (`charSet`, `density`, `invert`) as GET query parameters to `/api/apod`.
+  - Implemented dynamic cache-hit override rendering. If date metadata is cached, we bypass NASA fetching and LLM calls, but download the cached image to regenerate the custom ASCII art dynamically, which preserves system responsiveness.
+  - Implemented `AbortController` in client component fetches to prevent race conditions and overlapping requests on fast slider interactions.
+* **Verification Results:**
+  - `npx vitest run` → 48 tests passed (including new override route tests) ✅
+  - `npm run build` → compiled Next.js bundle successfully ✅
+  - Browser subagent verification: Brand elements, APOD source cards, control forms, interactive Copy / Zoom overlays, custom date loading (e.g. 2024-01-01), and error boundary logs all verified functional without console errors ✅
+
+
+
 
 
