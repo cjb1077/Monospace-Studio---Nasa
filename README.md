@@ -300,6 +300,6 @@ A Postman collection is provided in the repository to verify all HTTP endpoint o
 
 ---
 
-## 8. Demo Walkthrough Video
+## 8. Demo Walkthrough
 
-[View the Demo Walkthrough Video](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+![Monospace Studio Automation Recording](./public/walkthrough.webp)
