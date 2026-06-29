@@ -310,7 +310,7 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 ---
 
 ## 21. NASA APOD Timeout Mitigation (2026-06-29)
-* **Status:** In Progress.
+* **Status:** Complete.
 * **Decisions & Implementation Details:**
   - Designed and implemented a multi-layered timeout mitigation strategy: client-side UI cooldowns, server-side walkback throttling, and server-side retries with exponential backoff on transient/gateway errors.
   - **Task 1:** Implemented and exported the `withNasaRetry()` helper in `src/lib/nasa/apod.ts`, supporting up to 3 retry attempts with exponential backoff (500ms, 1000ms, 2000ms) on retryable status codes (429, 502, 503, 504).
@@ -322,3 +322,16 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 * **Verification Results:**
   - `npx vitest` → 57 tests passed successfully (all suites) ✅
   - `npm run build` → Next.js compiled cleanly with zero TypeScript or Turbopack compiler errors ✅
+
+---
+
+## 22. View Full Original Image Preview (2026-06-29)
+* **Status:** Complete.
+* **Decisions & Implementation Details:**
+  - Configured the original APOD source image thumbnail inside the "Source Telemetry" card to render fully without cropping.
+  - Set the thumbnail container `.thumbnailContainer` in `src/app/page.module.css` to center the image using flexbox and apply a glassmorphic background layer (`rgba(0, 0, 0, 0.4)`) to frame mismatched aspect ratios.
+  - Updated the thumbnail element's `object-fit` property to `contain` in both page CSS and element inline style attributes.
+  - Wrapped the image element in `src/app/page.tsx` in a tab-redirecting link (`target="_blank"`, `rel="noopener noreferrer"`) pointing to the raw high-resolution original APOD image URL to support interactive viewport expansion.
+* **Verification Results:**
+  - `npx vitest` → 57 tests passed successfully (all suites) ✅
+  - `npm run build` → Next.js compiled successfully with zero TypeScript or Turbopack compiler errors ✅
