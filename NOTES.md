@@ -134,3 +134,14 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 * **Verification Results (Task 1.4):**
   - `GET /api/apod?date=2024-01-01` → `{ ok: true, source: { title: "NGC 1232: A Grand Design Spiral Galaxy", date: "2024-01-01", ... }, usedFallbackImage: false }` ✅
   - NASA API key corrected in `.env.local` — UUID format replaced with correct alphanumeric key ✅
+
+---
+
+## 9. Phase 2 — ASCII Converter (2026-06-29)
+* **Status:** In Progress (Issue #9, #10).
+* **Starting Tasks:** 2.1 → write failing unit test for `convertImageToAscii`; 2.2 → implement; 2.3 → extend ramps + invert + density; 2.4 → wire into `/api/apod`.
+* **Decisions:**
+  - Using `sharp` for image decoding (native Node.js performance, supports JPEG/PNG/GIF/WebP, outputs raw pixel buffers for deterministic luminance mapping).
+  - Luminance formula: standard NTSC/Rec.601 weighted: `0.299*R + 0.587*G + 0.114*B` (perceptual).
+  - Character aspect ratio correction: terminal chars are ~2:1 (height:width), so `rows = Math.round(height / 2)` when scaling.
+  - `density` parameter scales luminance non-linearly: `adjustedLum = Math.pow(lum, 1 / density)` (density < 1 compresses mid-tones toward light; density > 1 pushes toward dark).
