@@ -80,3 +80,12 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - Programmatically synced and added all 27 open issues to the project board.
   - Noted that the user will need to manually link the personal project to the organization repository via the GitHub Web UI.
 
+---
+
+## 6. Planning Validation & Alignment (2026-06-29)
+* **Status:** Complete.
+* **Findings & Decisions:**
+  - Conducted a comprehensive planning validation check on all specs, plans, and diagrams.
+  - Identified a critical discrepancy where the `cached_apods` caching table and query logic were detailed in design specs and sequence diagrams but omitted from `IMPLEMENTATION.md`'s database definition and build plan.
+  - Clarified with the user and decided to make caching a core feature of the build plan.
+  - Updated `IMPLEMENTATION.md` database schema (Section 8) and task items (Section 9, Phase 3.4 and Phase 5.2) to incorporate the `cached_apods` table, query caching logic, and schema migration step.

@@ -215,6 +215,27 @@ Always trim the explanation to ~1,500 chars before sending. Never send image byt
 
 `supabase/schema.sql`:
 ```sql
+-- Table: public.cached_apods
+create table public.cached_apods (
+  source_date date primary key,
+  title text not null,
+  explanation text not null,
+  image_url text not null,
+  copyright text,
+  ascii text not null,
+  char_set text not null,
+  density numeric(3, 2) not null,
+  invert boolean not null,
+  caption text not null,
+  fun_fact text not null,
+  ai_style_used boolean not null,
+  ai_caption_used boolean not null,
+  used_fallback_image boolean not null,
+  created_at timestamptz not null default now()
+);
+alter table public.cached_apods enable row level security;
+
+-- Table: public.renders
 create table public.renders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -222,19 +243,23 @@ create table public.renders (
   ascii text not null,
   caption text default '',
   fun_fact text default '',
-  source_date date,
+  source_date date not null,
   is_public boolean not null default false,
   created_at timestamptz not null default now()
 );
 alter table public.renders enable row level security;
 
--- read: own rows, or any public row
+-- RLS policies: cached_apods
+create policy "read public cached_apods" on public.cached_apods
+  for select using (true);
+create policy "insert authenticated cached_apods" on public.cached_apods
+  for insert with check (auth.role() = 'authenticated');
+
+-- RLS policies: renders
 create policy "read own or public" on public.renders
   for select using (auth.uid() = user_id or is_public = true);
--- insert: only as yourself
 create policy "insert own" on public.renders
   for insert with check (auth.uid() = user_id);
--- delete: only your own
 create policy "delete own" on public.renders
   for delete using (auth.uid() = user_id);
 ```
@@ -287,10 +312,10 @@ scratch. Dev runs against LM Studio; the same code targets Trussed by env var.
 - 3.3 [Issue 13] Feature 2 `lib/prompts/caption.ts` + `lib/llm/caption.ts`: same pattern; validate
   non-empty caption/funFact within length caps; fallback = first sentence of the trimmed
   explanation, `aiCaptionUsed:false`. Test the fallback path. Verify: test green.
-- 3.4 [Issue 14] Wire both into `/api/apod`: Feature 1 -> convert -> Feature 2. Trim explanation to
-  ~1,500 chars before sending (never send image bytes). Verify: route returns `style`,
-  `caption`, `funFact`, and both `aiUsed` flags; stop LM Studio and confirm both
-  fallbacks fire and the route still returns 200.
+- 3.4 [Issue 14] Wire both features and database caching into `/api/apod`:
+  - Check the `cached_apods` table first. On cache hit, return the cached result.
+  - On cache miss, fetch NASA APOD -> Feature 1 -> convert -> Feature 2. Trim explanation to ~1,500 chars before sending (never send image bytes). Write the generated result to `cached_apods` (map snake_case DB columns to camelCase API response fields).
+  - Verify: first fetch of a new date is slow (~2-4s), subsequent fetches are sub-100ms. Stop LM Studio and confirm both fallbacks fire, the route still returns 200, and is cached correctly with `aiStyleUsed: false`/`aiCaptionUsed: false`.
 
 ### Phase 4 -- Studio UI
 - 4.1 [Issue 15] `app/page.tsx`: date picker (default today), "Generate" button, loading state.
@@ -306,8 +331,7 @@ scratch. Dev runs against LM Studio; the same code targets Trussed by env var.
 ### Phase 5 -- Auth + gallery (CRUD)
 - 5.1 [Issue 19] Supabase auth (email magic link or OAuth) + `middleware.ts` session refresh +
   server/client helpers. Verify: sign in, see session; sign out clears it.
-- 5.2 [Issue 20] Apply `schema.sql` (table + RLS). Verify: in the Supabase dashboard, RLS is on and
-  policies exist.
+- 5.2 [Issue 20] Apply `schema.sql` (both `renders` and `cached_apods` tables + RLS policies). Verify: in the Supabase dashboard, RLS is active on both tables and policies exist.
 - 5.3 [Issue 21] `POST /api/renders` (auth required) + "Save" button on the studio page. Write an
   api test: unauthorized POST is rejected; authorized POST inserts. Verify: tests green,
   row appears.
