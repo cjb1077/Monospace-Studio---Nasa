@@ -72,6 +72,67 @@ export default function Home() {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const isMinDate = inputDate === "1995-06-16";
+  const isToday = inputDate === todayEst;
+
+  const changeAndSubmitDate = (targetDate: string) => {
+    setInputDate(targetDate);
+    setActiveDate(targetDate);
+    setStyleOverride(null);
+  };
+
+  const adjustDateByDays = (dateStr: string, days: number) => {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    dateObj.setDate(dateObj.getDate() + days);
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const handlePrevDay = () => {
+    if (isMinDate || !inputDate) return;
+    const prevDate = adjustDateByDays(inputDate, -1);
+    changeAndSubmitDate(prevDate);
+  };
+
+  const handleNextDay = () => {
+    if (isToday || !inputDate) return;
+    const nextDate = adjustDateByDays(inputDate, 1);
+    changeAndSubmitDate(nextDate);
+  };
+
+  const handleToday = () => {
+    if (isToday || !todayEst) return;
+    changeAndSubmitDate(todayEst);
+  };
+
+  const handleYesterday = () => {
+    if (!todayEst) return;
+    const yesterday = adjustDateByDays(todayEst, -1);
+    changeAndSubmitDate(yesterday);
+  };
+
+  const handleRandom = () => {
+    if (!todayEst) return;
+    const [minY, minM, minD] = "1995-06-16".split("-").map(Number);
+    const [maxY, maxM, maxD] = todayEst.split("-").map(Number);
+    const minDate = new Date(minY, minM - 1, minD);
+    const maxDate = new Date(maxY, maxM - 1, maxD);
+    
+    const diffTime = maxDate.getTime() - minDate.getTime();
+    const randomTime = minDate.getTime() + Math.random() * diffTime;
+    const randomDateObj = new Date(randomTime);
+    
+    const y = randomDateObj.getFullYear();
+    const m = String(randomDateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(randomDateObj.getDate()).padStart(2, "0");
+    const randomDateStr = `${y}-${m}-${d}`;
+    changeAndSubmitDate(randomDateStr);
+  };
+
+
   // Dynamic loader step ticking
   const [loaderStep, setLoaderStep] = useState(0);
 
@@ -392,15 +453,65 @@ export default function Home() {
                 <label className={styles.label} htmlFor="date-picker">
                   Select Date
                 </label>
-                <input
-                  id="date-picker"
-                  type="date"
-                  className={styles.dateInput}
-                  min="1995-06-16"
-                  max={todayEst}
-                  value={inputDate}
-                  onChange={(e) => setInputDate(e.target.value)}
-                />
+                <div className={styles.dateStepperContainer}>
+                  <button
+                    type="button"
+                    className={styles.stepperBtn}
+                    onClick={handlePrevDay}
+                    disabled={loading || isMinDate}
+                    title="Previous Day"
+                  >
+                    ◀
+                  </button>
+                  <input
+                    id="date-picker"
+                    type="date"
+                    className={styles.dateInput}
+                    min="1995-06-16"
+                    max={todayEst}
+                    value={inputDate}
+                    onChange={(e) => setInputDate(e.target.value)}
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className={styles.stepperBtn}
+                    onClick={handleNextDay}
+                    disabled={loading || isToday}
+                    title="Next Day"
+                  >
+                    ▶
+                  </button>
+                </div>
+                <div className={styles.shortcutsContainer}>
+                  <button
+                    type="button"
+                    className={styles.shortcutBtn}
+                    onClick={handleToday}
+                    disabled={loading || isToday}
+                    title="Load Today's APOD"
+                  >
+                    📅 Today
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.shortcutBtn}
+                    onClick={handleYesterday}
+                    disabled={loading || isMinDate}
+                    title="Load Yesterday's APOD"
+                  >
+                    ⬅️ Yesterday
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.shortcutBtn}
+                    onClick={handleRandom}
+                    disabled={loading}
+                    title="Load a Random APOD"
+                  >
+                    🎲 Random
+                  </button>
+                </div>
               </div>
               <button type="submit" className={styles.btn} disabled={loading}>
                 {loading ? "Transmitting..." : "Generate Cosmic Art"}
