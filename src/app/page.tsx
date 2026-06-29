@@ -560,12 +560,20 @@ export default function Home() {
               </h2>
               <div className={styles.thumbnailContainer}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={apodData.source.imageUrl}
-                  alt={apodData.source.title}
-                  className={styles.thumbnail}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
+                <a
+                  href={apodData.source.imageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="View full-size original image"
+                  className={styles.thumbnailLink}
+                >
+                  <img
+                    src={apodData.source.imageUrl}
+                    alt={apodData.source.title}
+                    className={styles.thumbnail}
+                    style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", width: "auto", height: "auto" }}
+                  />
+                </a>
               </div>
               <h3 className={styles.apodTitle}>{apodData.source.title}</h3>
               <div className={styles.apodMeta}>
