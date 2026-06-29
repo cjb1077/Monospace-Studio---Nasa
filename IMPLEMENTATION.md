@@ -244,89 +244,89 @@ create policy "delete own" on public.renders
 Each task ends with a verification step. Commit after each. Write tests where noted.
 
 ### Phase 0 -- Project setup
-- 0.1 Create Next.js (App Router, TypeScript) app. Verify: `npm run dev` serves the
+- 0.1 [Issue 1] Create Next.js (App Router, TypeScript) app. Verify: `npm run dev` serves the
   default page.
-- 0.2 Add Vitest + a trivial passing test. Verify: `npm test` is green.
-- 0.3 Add `.env.local.example` listing every env var from section 3 (no real values).
+- 0.2 [Issue 2] Add Vitest + a trivial passing test. Verify: `npm test` is green.
+- 0.3 [Issue 3] Add `.env.local.example` listing every env var from section 3 (no real values).
   Verify: file present, README references it.
-- 0.4 Init git, commit. Verify: clean `git status`.
+- 0.4 [Issue 4] Init git, commit. Verify: clean `git status`.
 
 ### Phase 1 -- NASA APOD integration (server)
-- 1.1 `lib/nasa/apod.ts`: `fetchApod(date?)` calling the endpoint with `NASA_API_KEY`.
+- 1.1 [Issue 5] `lib/nasa/apod.ts`: `fetchApod(date?)` calling the endpoint with `NASA_API_KEY`.
   Verify: a quick script logs a real title for today.
-- 1.2 Handle `media_type === "video"`: walk back up to 7 days to find an image; if none,
+- 1.2 [Issue 6] Handle `media_type === "video"`: walk back up to 7 days to find an image; if none,
   return a `usedFallbackImage` marker. Verify: unit test with mocked video response
   walks back and stops.
-- 1.3 `downloadImage(url)` returning a buffer, with timeout + content-type check.
+- 1.3 [Issue 7] `downloadImage(url)` returning a buffer, with timeout + content-type check.
   Verify: unit test with a mocked fetch returns a buffer; bad type throws typed error.
-- 1.4 `GET /api/apod` route returning `source` only (no ascii/LLM yet). Verify: hitting
+- 1.4 [Issue 8] `GET /api/apod` route returning `source` only (no ascii/LLM yet). Verify: hitting
   the route returns JSON with a real title.
 
 ### Phase 2 -- ASCII converter (pure)
-- 2.1 Write a FAILING unit test: a known 2x2 gradient image -> expected ascii string for
+- 2.1 [Issue 9] Write a FAILING unit test: a known 2x2 gradient image -> expected ascii string for
   `charSet: "standard"`. Verify: test fails (red).
-- 2.2 Implement `convertImageToAscii` minimally to pass. Verify: test passes (green).
-- 2.3 Add `fine` and `blocky` ramps + `invert` + `density`, each with a unit test.
+- 2.2 [Issue 9] Implement `convertImageToAscii` minimally to pass. Verify: test passes (green).
+- 2.3 [Issue 9] Add `fine` and `blocky` ramps + `invert` + `density`, each with a unit test.
   Verify: all converter tests green.
-- 2.4 Wire converter into `/api/apod` with default settings. Verify: route now returns a
+- 2.4 [Issue 10] Wire converter into `/api/apod` with default settings. Verify: route now returns a
   non-empty `ascii` field.
 
 ### Phase 3 -- LLM features (server)
 Adopt the prebuilt LLM layer from `LLM_INTEGRATION.md` -- do NOT write a client from
 scratch. Dev runs against LM Studio; the same code targets Trussed by env var.
-- 3.1 Add `lib/llm/config.ts`, `client.ts`, `chat.ts` per `LLM_INTEGRATION.md` (provider
+- 3.1 [Issue 11] Add `lib/llm/config.ts`, `client.ts`, `chat.ts` per `LLM_INTEGRATION.md` (provider
   config, cached client, `createChatCompletion` / `createJsonCompletion` with JSON mode,
   3-attempt retry, typed errors). Add the `test:llm` script and `GET /api/llm/test`
   smoke route. Verify: with LM Studio running, `npm run test:llm` returns a completion
   and `/api/llm/test` reports connectivity from the browser.
-- 3.2 Feature 1 `lib/prompts/style.ts` + `lib/llm/style.ts`: build the prompt with the
+- 3.2 [Issue 12] Feature 1 `lib/prompts/style.ts` + `lib/llm/style.ts`: build the prompt with the
   JSON schema, call `createJsonCompletion`, zod-validate (charSet in enum, density
   0.4-0.9, invert boolean), retry once, then fallback. Write a test feeding malformed /
   out-of-range JSON -> returns fallback `{standard,0.6,false}` with `aiStyleUsed:false`.
   Verify: test green.
-- 3.3 Feature 2 `lib/prompts/caption.ts` + `lib/llm/caption.ts`: same pattern; validate
+- 3.3 [Issue 13] Feature 2 `lib/prompts/caption.ts` + `lib/llm/caption.ts`: same pattern; validate
   non-empty caption/funFact within length caps; fallback = first sentence of the trimmed
   explanation, `aiCaptionUsed:false`. Test the fallback path. Verify: test green.
-- 3.4 Wire both into `/api/apod`: Feature 1 -> convert -> Feature 2. Trim explanation to
+- 3.4 [Issue 14] Wire both into `/api/apod`: Feature 1 -> convert -> Feature 2. Trim explanation to
   ~1,500 chars before sending (never send image bytes). Verify: route returns `style`,
   `caption`, `funFact`, and both `aiUsed` flags; stop LM Studio and confirm both
   fallbacks fire and the route still returns 200.
 
 ### Phase 4 -- Studio UI
-- 4.1 `app/page.tsx`: date picker (default today), "Generate" button, loading state.
+- 4.1 [Issue 15] `app/page.tsx`: date picker (default today), "Generate" button, loading state.
   Verify: clicking generate shows a spinner then the ascii art in a monospace block.
-- 4.2 Render caption + fun fact, and a notice when a fallback was used
+- 4.2 [Issue 16] Render caption + fun fact, and a notice when a fallback was used
   (`aiStyleUsed`/`aiCaptionUsed`/`usedFallbackImage`). Verify: forcing a fallback shows
   the notice.
-- 4.3 Style controls (charSet, density, invert) that re-request conversion. Verify:
+- 4.3 [Issue 17] Style controls (charSet, density, invert) that re-request conversion. Verify:
   changing a control updates the art.
-- 4.4 Error states: NASA down, rate-limited, bad date -> friendly messages, no crash.
+- 4.4 [Issue 18] Error states: NASA down, rate-limited, bad date -> friendly messages, no crash.
   Verify: simulate each and confirm the message.
 
 ### Phase 5 -- Auth + gallery (CRUD)
-- 5.1 Supabase auth (email magic link or OAuth) + `middleware.ts` session refresh +
+- 5.1 [Issue 19] Supabase auth (email magic link or OAuth) + `middleware.ts` session refresh +
   server/client helpers. Verify: sign in, see session; sign out clears it.
-- 5.2 Apply `schema.sql` (table + RLS). Verify: in the Supabase dashboard, RLS is on and
+- 5.2 [Issue 20] Apply `schema.sql` (table + RLS). Verify: in the Supabase dashboard, RLS is on and
   policies exist.
-- 5.3 `POST /api/renders` (auth required) + "Save" button on the studio page. Write an
+- 5.3 [Issue 21] `POST /api/renders` (auth required) + "Save" button on the studio page. Write an
   api test: unauthorized POST is rejected; authorized POST inserts. Verify: tests green,
   row appears.
-- 5.4 `GET /api/renders` + `app/gallery/page.tsx` listing own + public renders. Verify:
+- 5.4 [Issue 22] `GET /api/renders` + `app/gallery/page.tsx` listing own + public renders. Verify:
   saved render shows in the gallery.
-- 5.5 `DELETE /api/renders/:id` (owner only) + delete button. Test: deleting another
+- 5.5 [Issue 23] `DELETE /api/renders/:id` (owner only) + delete button. Test: deleting another
   user's row is rejected. Verify: test green; own delete works.
 
 ### Phase 6 -- Polish, docs, deploy
-- 6.1 Loading/empty/error states reviewed across the app; fix rough edges. Verify:
+- 6.1 [Issue 24] Loading/empty/error states reviewed across the app; fix rough edges. Verify:
   click through every flow with no console errors.
-- 6.2 Build the Postman/Thunder Client collection covering all four endpoints incl.
+- 6.2 [Issue 25] Build the Postman/Thunder Client collection covering all four endpoints incl.
   error cases (bad date, unauthorized, not found). Commit it. Verify: collection runs.
-- 6.3 README: overview, setup, env vars, run steps, **AI features section**, endpoint
+- 6.3 [Issue 26] README: overview, setup, env vars, run steps, **AI features section**, endpoint
   docs, **API cost estimates** (NASA free; LLM ~N tokens/call x price), edge cases, and
   a **link to the demo video**. Verify: a new reader could set it up from the README.
-- 6.4 Deploy to Netlify with all env vars set server-side. Verify: the live URL runs end
+- 6.4 [Issue 27] Deploy to Netlify with all env vars set server-side. Verify: the live URL runs end
   to end (generate + save + gallery).
-- 6.5 Record the 3-5 min demo video, link it in the README. Verify: link works.
+- 6.5 [Issue 27] Record the 3-5 min demo video, link it in the README. Verify: link works.
 
 ## 10. Cost notes (for the README cost doc)
 - NASA APOD: free. Register a key to avoid `DEMO_KEY` rate limits.
