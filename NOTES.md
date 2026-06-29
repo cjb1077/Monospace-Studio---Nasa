@@ -172,3 +172,24 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npm run test:llm` CLI script: reads `.env.local`, logs config, fires test completion with timing and token counts.
 * **Commit:** `feat: add LLM infrastructure layer (config, client, chat, smoke route, CLI scripts) (resolves #11)`
 
+---
+
+## 11. Phase 3.2 — LLM Style Selection (2026-06-29)
+* **Status:** Complete (Issue #12 closed).
+* **Decisions:**
+  - Standardizing fallback style settings: `{ charSet: "standard", density: 0.6, invert: false }`.
+  - Creating prompt templates with JSON schema and Zod validation, retrying once on validation failure before reverting to fallback.
+* **Verification Results:**
+  - `npx vitest tests/style.test.ts --run` → 3 tests passed ✅
+  - `npx vitest run` → 38 tests passed ✅
+
+---
+
+## 12. Phase 3.3 — LLM Caption & Fun-Fact (2026-06-29)
+* **Status:** In Progress (Issue #13).
+* **Decisions:**
+  - System prompt: Instructing to return ONLY valid JSON matching the schema: `{ "caption": "string", "funFact": "string" }` under constraints (caption <= 140 chars, funFact <= 200 chars).
+  - Validation: Standardizing Zod validation schema matching length/presence requirements.
+  - Fallback logic: Caption defaults to the first sentence of the trimmed explanation, funFact defaults to empty string, setting `aiCaptionUsed: false`.
+
+
