@@ -125,4 +125,7 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npx vitest tests/nasa.test.ts --run` → 15 tests passed ✅
   - `npx tsx scripts/test-fetch-apod.ts` (with NASA DEMO_KEY) → Live APOD details fetched and logged successfully ✅
 
-
+  - **Task 1.3 [Issue 7]** Complete. Implemented `downloadImage(url)` in `src/lib/nasa/apod.ts` using native `fetch` with `AbortController` (10s timeout) and content-type validation (requiring `image/`). Added 4 corresponding unit tests to `tests/nasa.test.ts` covering successful download, invalid content-type, non-200 HTTP statuses, and timeouts.
+* **Verification Results:**
+  - `npx vitest tests/nasa.test.ts --run` → 18 tests passed (including 4 new downloadImage tests) ✅
+  - `npx vitest --run` → 19 tests passed ✅
