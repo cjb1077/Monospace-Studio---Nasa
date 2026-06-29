@@ -1,0 +1,329 @@
+{
+  "info": {
+    "_postman_id": "monospace-studio-api-collection",
+    "name": "Monospace Studio API Collection",
+    "description": "API endpoints collection for Monospace Studio (NASA APOD ASCII Art Studio). Includes success and error scenarios for /api/apod and /api/renders.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "APOD API",
+      "description": "Endpoints relating to fetching the APOD data and converting it to ASCII art.",
+      "item": [
+        {
+          "name": "Get APOD (Default/Today)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/apod",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "apod"
+              ]
+            },
+            "description": "Fetches today's NASA Astronomy Picture of the Day, style recommendations, and generated ASCII art."
+          },
+          "response": []
+        },
+        {
+          "name": "Get APOD (Specific Date)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/apod?date=2026-06-28",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "apod"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-06-28"
+                }
+              ]
+            },
+            "description": "Fetches a specific date's APOD image, ASCII art, and LLM captions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get APOD (Invalid Date)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/apod?date=2026-06-35",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "apod"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-06-35"
+                }
+              ]
+            },
+            "description": "Attempts to fetch an invalid date, returning a 400 Bad Request error with BAD_DATE code."
+          },
+          "response": []
+        },
+        {
+          "name": "Get APOD (Future Date)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/apod?date=2030-01-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "apod"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2030-01-01"
+                }
+              ]
+            },
+            "description": "Attempts to fetch a future date, which fails validation and returns BAD_DATE."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Renders API",
+      "description": "CRUD endpoints for saving and listing ASCII art renders in the gallery.",
+      "item": [
+        {
+          "name": "List Renders (Anonymous / Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/renders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "renders"
+              ]
+            },
+            "description": "Retrieves the list of public renders, as well as the authenticated user's own renders if cookies are present."
+          },
+          "response": []
+        },
+        {
+          "name": "Save Render (Authenticated)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supabase_jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Galaxy Test\",\n  \"ascii\": \"   ...:::---+++###@@@\\n   ...:::---+++###@@@\\n\",\n  \"caption\": \"Saved via Postman collection verification!\",\n  \"funFact\": \"Postman can be used to run automated endpoint checks.\",\n  \"sourceDate\": \"2026-06-28\",\n  \"isPublic\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/renders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "renders"
+              ]
+            },
+            "description": "Saves a render to the user's gallery. Requires authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Save Render (Unauthorized)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Unauthorized Galaxy\",\n  \"ascii\": \"...\",\n  \"sourceDate\": \"2026-06-28\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/renders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "renders"
+              ]
+            },
+            "description": "Attempts to save a render without authentication, returning a 401 Unauthorized error with UNAUTHORIZED code."
+          },
+          "response": []
+        },
+        {
+          "name": "Save Render (Bad Payload)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supabase_jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/renders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "renders"
+              ]
+            },
+            "description": "Attempts to save a render with missing fields, returning a 400 Bad Request error."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Render (Authenticated)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{supabase_jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/renders/{{render_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "renders",
+                "{{render_id}}"
+              ]
+            },
+            "description": "Deletes a render by ID. Requires ownership of the render row."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Render (Unauthorized)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/renders/{{render_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "renders",
+                "{{render_id}}"
+              ]
+            },
+            "description": "Attempts to delete a render without authentication, returning a 401 Unauthorized error."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "supabase_jwt",
+      "value": "your_supabase_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "render_id",
+      "value": "placeholder-render-id-uuid",
+      "type": "string"
+    }
+  ]
+}

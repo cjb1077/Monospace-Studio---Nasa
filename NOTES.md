@@ -253,6 +253,22 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npm run build` → Next.js compiled cleanly with zero lint or TypeScript compiler errors ✅
   - `npm test` → 54 passing tests, no regressions ✅
 
+---
+
+## 17. Phase 6.2 — Postman / Thunder Client Collection (2026-06-29)
+* **Status:** Complete (Issue #25 closed).
+* **Decisions & Implementation Details:**
+  - Created `postman/collection.json` following the Postman Collection v2.1.0 schema specification.
+  - Configured collection variables for configurable endpoints: `{{base_url}}` (defaulting to `http://localhost:3000`), `{{supabase_jwt}}`, and `{{render_id}}`.
+  - Added request folders and specific endpoints covering success and error paths:
+    1. `GET /api/apod` (Today/default path, specific date path, invalid date path, future date path)
+    2. `GET /api/renders` (List public renders)
+    3. `POST /api/renders` (Authenticated save, unauthorized save, bad payload save missing fields)
+    4. `DELETE /api/renders/:id` (Authenticated delete, unauthorized delete)
+* **Verification Results:**
+  - `postman/collection.json` successfully created and validated as structurally sound JSON ✅
+  - `npm test` → 54 passing tests, no regressions ✅
+
 
 
 
