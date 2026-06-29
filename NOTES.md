@@ -186,10 +186,13 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 ---
 
 ## 12. Phase 3.3 — LLM Caption & Fun-Fact (2026-06-29)
-* **Status:** In Progress (Issue #13).
+* **Status:** Complete (Issue #13 closed).
 * **Decisions:**
   - System prompt: Instructing to return ONLY valid JSON matching the schema: `{ "caption": "string", "funFact": "string" }` under constraints (caption <= 140 chars, funFact <= 200 chars).
   - Validation: Standardizing Zod validation schema matching length/presence requirements.
   - Fallback logic: Caption defaults to the first sentence of the trimmed explanation, funFact defaults to empty string, setting `aiCaptionUsed: false`.
+* **Verification Results:**
+  - `npx vitest tests/caption.test.ts --run` → 4 tests passed ✅
+  - `npx vitest run` → 42 tests passed ✅
 
 
