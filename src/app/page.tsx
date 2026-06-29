@@ -394,11 +394,10 @@ export default function Home() {
               </button>
 
               {showAuthDropdown && (
-                <div className={styles.glassCard} style={{
+                <div className={`${styles.glassCard} ${styles.authDropdown}`} style={{
                   position: "absolute",
                   right: 0,
                   top: "120%",
-                  width: "280px",
                   zIndex: 200,
                   padding: "1.25rem",
                   boxShadow: "0 10px 40px rgba(0,0,0,0.7)"

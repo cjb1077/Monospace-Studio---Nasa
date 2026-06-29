@@ -81,6 +81,11 @@
   box-shadow: 0 0 15px rgba(0, 229, 255, 0.1);
 }
 
+.authDropdown {
+  width: 280px;
+  max-width: calc(100vw - 2rem);
+}
+
 .userStatus {
   display: flex;
   align-items: center;
@@ -135,6 +140,8 @@
   }
   .nav {
     gap: 0.6rem;
+    width: 100%;
+    justify-content: flex-end;
   }
   .navLink {
     font-size: 0.875rem;
@@ -142,10 +149,19 @@
   .userStatus {
     gap: 0.5rem;
     font-size: 0.8rem;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .userStatus span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 130px;
   }
   .authBtn {
     padding: 0.4rem 0.75rem;
     font-size: 0.85rem;
+    white-space: nowrap;
   }
   .main {
     padding: 1rem;
@@ -171,6 +187,8 @@
 @media (max-width: 480px) {
   .nav {
     gap: 0.4rem;
+    width: 100%;
+    justify-content: flex-end;
   }
   .navLink {
     font-size: 0.8rem;
