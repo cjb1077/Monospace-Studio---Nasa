@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fetchApod, ApodError, downloadImage } from "../src/lib/nasa/apod";
+import { fetchApod, ApodError, downloadImage, withNasaRetry } from "../src/lib/nasa/apod";
 
 describe("NASA APOD API integration", () => {
   const originalApiKey = process.env.NASA_API_KEY;
@@ -15,6 +15,42 @@ describe("NASA APOD API integration", () => {
     process.env.NASA_API_KEY = originalApiKey;
     global.fetch = originalFetch;
     mockFetch.mockReset();
+  });
+
+  describe("withNasaRetry", () => {
+    it("should succeed immediately on success", async () => {
+      let calls = 0;
+      const result = await withNasaRetry(async () => {
+        calls++;
+        return "success";
+      });
+      expect(result).toBe("success");
+      expect(calls).toBe(1);
+    });
+
+    it("should retry on 429/502/503/504 and succeed if later attempt succeeds", async () => {
+      let calls = 0;
+      const result = await withNasaRetry(async () => {
+        calls++;
+        if (calls < 2) {
+          throw new ApodError("Rate limit", "NASA_RATE_LIMIT", 429);
+        }
+        return "recovered";
+      });
+      expect(result).toBe("recovered");
+      expect(calls).toBe(2);
+    });
+
+    it("should propagate non-retryable errors immediately", async () => {
+      let calls = 0;
+      await expect(
+        withNasaRetry(async () => {
+          calls++;
+          throw new ApodError("Bad request", "BAD_DATE", 400);
+        })
+      ).rejects.toThrow("Bad request");
+      expect(calls).toBe(1);
+    });
   });
 
   describe("API Key check", () => {

@@ -7,6 +7,28 @@ export class ApodError extends Error {
   }
 }
 
+export async function withNasaRetry<T>(fn: () => Promise<T>): Promise<T> {
+  const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
+  const MAX_ATTEMPTS = 3;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastError = err;
+      const status = err instanceof ApodError ? err.status : (err as { status?: number })?.status;
+      if (status !== undefined && RETRYABLE_STATUS.has(status)) {
+        const wait = 500 * Math.pow(2, attempt); // 500ms, 1000ms, 2000ms
+        await new Promise((resolve) => setTimeout(resolve, wait));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 export function validateDate(dateStr: string): void {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     throw new ApodError("Invalid date format. Expected YYYY-MM-DD.", "BAD_DATE", 400);

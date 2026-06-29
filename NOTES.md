@@ -307,10 +307,14 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npm run build` → Compiled successfully ✅
   - Browser subagent verified manual behavior (Random, Yesterday, Steppers and disabled state limits) ✅
 
+---
 
-
-
-
-
-
+## 21. NASA APOD Timeout Mitigation (2026-06-29)
+* **Status:** In Progress.
+* **Decisions & Implementation Details:**
+  - Designed and implemented a multi-layered timeout mitigation strategy: client-side UI cooldowns, server-side walkback throttling, and server-side retries with exponential backoff on transient/gateway errors.
+  - **Task 1:** Implemented and exported the `withNasaRetry()` helper in `src/lib/nasa/apod.ts`, supporting up to 3 retry attempts with exponential backoff (500ms, 1000ms, 2000ms) on retryable status codes (429, 502, 503, 504).
+  - Wrote 3 comprehensive unit tests in `tests/nasa.test.ts` verifying immediate success, successful retries on 429/502/503/504, and immediate propagation of non-retryable errors (e.g. 400).
+* **Verification Results:**
+  - `npx vitest tests/nasa.test.ts --run` → 21 passing tests (including new retry tests) ✅
 
