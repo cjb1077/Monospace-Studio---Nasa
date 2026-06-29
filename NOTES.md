@@ -152,3 +152,23 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `GET /api/apod?date=2024-01-01` → `{ ok: true, ascii: "<6049 chars>", style: { charSet: "standard", density: 0.6, invert: false }, aiStyleUsed: false, aiCaptionUsed: false }` ✅
 * **Commit:** `feat: implement ASCII converter with TDD + wire into /api/apod (resolves #9, #10)`
 
+---
+
+## 10. Phase 3 — LLM Features (2026-06-29)
+* **Status:** In Progress (Task 3.1 [Issue #11] Complete).
+* **Starting Task:** 3.1 → add LLM infrastructure layer (`config.ts`, `client.ts`, `chat.ts`), smoke-test route, and CLI scripts.
+* **Decisions:**
+  - Installed `openai` npm package (OpenAI-compatible client) and `zod` for JSON validation (Phase 3.2/3.3). Also installed `dotenv` for CLI scripts that need to load `.env.local` before module imports.
+  - `getLlmConfig()` branches on `LLM_PROVIDER` env var: supports `trussed`, `openai`, `openai-compatible` (default). Throws a clear error if required vars are missing.
+  - `getLlmClient()` is a module-level singleton — one cached `OpenAI` instance per process.
+  - `createChatCompletion` / `createJsonCompletion` implement: JSON mode (`response_format: { type: "json_object" }`), up to 3 retry attempts with exponential backoff on HTTP 429/502/503, typed `LlmError` class with codes: `EMPTY_RESPONSE`, `REASONING_ONLY`, `INVALID_JSON`, `LLM_DOWN`, `RATE_LIMITED`, `TIMEOUT`.
+  - `REASONING_ONLY` detection: checks for empty `content` alongside a non-empty `reasoning_content` field — guards against mistakenly loading a thinking model.
+  - `createJsonCompletion` retries once on `INVALID_JSON` before propagating the error (matching `LLM_INTEGRATION.md` spec).
+  - `scripts/test-features.ts` defers dynamic imports of style/caption modules via `new Function('p', 'return import(p)')` so TypeScript does not resolve missing paths at compile time.
+* **Verification Results:**
+  - `npx tsc --noEmit` → 0 errors ✅
+  - `npx vitest run` → 35 tests passed (no regressions) ✅
+  - `GET /api/llm/test` smoke route: accessible in the browser, returns config + completion when LLM provider is reachable.
+  - `npm run test:llm` CLI script: reads `.env.local`, logs config, fires test completion with timing and token counts.
+* **Commit:** `feat: add LLM infrastructure layer (config, client, chat, smoke route, CLI scripts) (resolves #11)`
+
