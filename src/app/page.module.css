@@ -752,3 +752,77 @@
   background: rgba(255, 255, 255, 0.1);
   border-color: var(--accent-primary);
 }
+
+/* Date Stepper Container & Buttons */
+.dateStepperContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.stepperBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.stepperBtn:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.stepperBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Shortcuts Container & Buttons */
+.shortcutsContainer {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shortcutBtn {
+  flex: 1;
+  min-width: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shortcutBtn:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.05);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.shortcutBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
