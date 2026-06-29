@@ -27,10 +27,24 @@ export default function Gallery() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Stateful toast notifications
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "mine" | "public">("all");
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Listen to auth changes
   useEffect(() => {
@@ -65,7 +79,9 @@ export default function Gallery() {
     }
   };
 
+  // Mount logic: fetch renders + set browser tab title dynamically
   useEffect(() => {
+    document.title = "Monospace Studio — Gallery";
     fetchRenders();
   }, []);
 
@@ -78,12 +94,13 @@ export default function Gallery() {
       const data = await response.json();
       if (response.ok && data.ok) {
         setRenders(renders.filter((r) => r.id !== id));
+        setToast({ message: "Render successfully scrubbed from space archive.", type: "success" });
       } else {
-        alert(data.error || "Failed to delete render.");
+        setToast({ message: data.error || "Failed to delete render.", type: "error" });
       }
     } catch (err) {
       console.error(err);
-      alert("Connection failure while deleting render.");
+      setToast({ message: "Connection failure while deleting render.", type: "error" });
     }
   };
 
@@ -91,7 +108,7 @@ export default function Gallery() {
     e.preventDefault();
     if (!loginEmail) return;
     setLoginLoading(true);
-    setError(null);
+    setAuthError(null);
     try {
       const supabase = getSupabaseClient();
       const { error: authErr } = await supabase.auth.signInWithOtp({
@@ -101,13 +118,13 @@ export default function Gallery() {
         },
       });
       if (authErr) {
-        setError(authErr.message);
+        setAuthError(authErr.message);
       } else {
         setLoginSuccess(true);
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to trigger login request.");
+      setAuthError("Failed to trigger login request.");
     } finally {
       setLoginLoading(false);
     }
@@ -172,6 +189,7 @@ export default function Gallery() {
                 onClick={() => {
                   setShowAuthDropdown(!showAuthDropdown);
                   setLoginSuccess(false);
+                  setAuthError(null);
                 }}
                 className={styles.authBtn}
               >
@@ -208,6 +226,11 @@ export default function Gallery() {
                           required
                         />
                       </div>
+                      {authError && (
+                        <div className={styles.inlineError} style={{ marginBottom: "0.75rem", marginTop: 0 }}>
+                          <span>⚠️</span> {authError}
+                        </div>
+                      )}
                       <button
                         type="submit"
                         style={{
@@ -359,6 +382,18 @@ export default function Gallery() {
           </section>
         )}
       </main>
+
+      {/* Glassmorphic Toasts */}
+      {toast && (
+        <div className={styles.toastContainer}>
+          <div className={`${styles.toast} ${toast.type === "success" ? styles.toastSuccess : styles.toastError}`}>
+            <span className={toast.type === "success" ? styles.toastIconSuccess : styles.toastIconError}>
+              {toast.type === "success" ? "🛸" : "⚠️"}
+            </span>
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

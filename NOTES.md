@@ -238,6 +238,21 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npm run build` → Next.js compiled cleanly without warnings ✅
   - Browser subagent verification: Verified gallery layout loads, filters render, search bar works, and navigation toggles to Studio page without console issues ✅
 
+---
+
+## 16. Phase 6.1 — UX Polish, Loaders, Errors, and Hydration (2026-06-29)
+* **Status:** Complete (Issue #24 closed).
+* **Decisions & Implementation Details:**
+  - Resolved client-server timezone hydration warning by deferred date initialization using `isMounted` mount guard in `src/app/page.tsx`.
+  - Implemented glassmorphic CSS animations and skeleton screens for dashboard cards (telemetry, controls, viewport) to prevent layout shifts.
+  - Implemented a simulated dynamic logs terminal loader progression for initial loads.
+  - Isolated the transient auth error (`authError`) and save render error (`saveError`) from the global fetch error so failures in those contexts don't override the main successfully-rendered ASCII art.
+  - Swapped standard `alert` dialogs in `src/app/gallery/page.tsx` with customized glassmorphic toast notification cards.
+  - Fixed SEO `<title>` and metadata in root `layout.tsx` and dynamically updating browser tab title in Gallery page.
+* **Verification Results:**
+  - `npm run build` → Next.js compiled cleanly with zero lint or TypeScript compiler errors ✅
+  - `npm test` → 54 passing tests, no regressions ✅
+
 
 
 

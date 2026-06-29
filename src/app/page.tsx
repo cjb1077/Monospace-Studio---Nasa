@@ -41,9 +41,10 @@ const getTodayEst = () => {
 };
 
 export default function Home() {
-  const todayEst = getTodayEst();
-  const [inputDate, setInputDate] = useState(todayEst);
-  const [activeDate, setActiveDate] = useState(todayEst);
+  const [inputDate, setInputDate] = useState("");
+  const [activeDate, setActiveDate] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+  const todayEst = isMounted ? getTodayEst() : "";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apodData, setApodData] = useState<ApodApiResponse | null>(null);
@@ -57,17 +58,43 @@ export default function Home() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Save states
   const [saveIsPublic, setSaveIsPublic] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [copied, setCopied] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [viewportHover, setViewportHover] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Dynamic loader step ticking
+  const [loaderStep, setLoaderStep] = useState(0);
+
+  useEffect(() => {
+    let intervalId: any;
+    if (loading) {
+      setLoaderStep(0);
+      intervalId = setInterval(() => {
+        setLoaderStep((prev) => (prev < 3 ? prev + 1 : prev));
+      }, 950);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [loading]);
+
+  // Mount logic to calculate timezone date client-side and avoid hydration warnings
+  useEffect(() => {
+    const today = getTodayEst();
+    setInputDate(today);
+    setActiveDate(today);
+    setIsMounted(true);
+  }, []);
 
   // Listen to auth changes
   useEffect(() => {
@@ -123,7 +150,9 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchApodData(activeDate, null);
+    if (activeDate) {
+      fetchApodData(activeDate, null);
+    }
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -168,7 +197,7 @@ export default function Home() {
     e.preventDefault();
     if (!loginEmail) return;
     setLoginLoading(true);
-    setError(null);
+    setAuthError(null);
     try {
       const supabase = getSupabaseClient();
       const { error: authErr } = await supabase.auth.signInWithOtp({
@@ -178,13 +207,13 @@ export default function Home() {
         },
       });
       if (authErr) {
-        setError(authErr.message);
+        setAuthError(authErr.message);
       } else {
         setLoginSuccess(true);
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to trigger login request.");
+      setAuthError("Failed to trigger login request.");
     } finally {
       setLoginLoading(false);
     }
@@ -204,7 +233,7 @@ export default function Home() {
   const handleSaveRender = async () => {
     if (!apodData || !session) return;
     setSaveLoading(true);
-    setError(null);
+    setSaveError(null);
     try {
       const response = await fetch("/api/renders", {
         method: "POST",
@@ -225,15 +254,42 @@ export default function Home() {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        setError(data.error || "Failed to save cosmic render.");
+        setSaveError(data.error || "Failed to save cosmic render.");
       }
     } catch (err) {
       console.error(err);
-      setError("Connection error while saving render.");
+      setSaveError("Connection error while saving render.");
     } finally {
       setSaveLoading(false);
     }
   };
+
+  if (!isMounted) {
+    return (
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <div className={styles.brand}>
+            <span className={styles.terminalIcon}>&gt;_</span> Monospace Studio
+          </div>
+          <nav className={styles.nav}>
+            <a href="#" className={`${styles.navLink} ${styles.navLinkActive}`}>🔭 Studio</a>
+            <a href="/gallery" className={styles.navLink}>🌌 Gallery</a>
+          </nav>
+        </header>
+        <main className={styles.main}>
+          <section className={styles.leftCol}>
+            <div className={`${styles.glassCard} ${styles.skeletonPulse}`} style={{ height: "180px" }} />
+          </section>
+          <section className={styles.rightCol}>
+            <div className={styles.loadingContainer}>
+              <div className={styles.spinner}></div>
+              <p>📡 Initializing quantum data link...</p>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -263,6 +319,7 @@ export default function Home() {
                 onClick={() => {
                   setShowAuthDropdown(!showAuthDropdown);
                   setLoginSuccess(false);
+                  setAuthError(null);
                 }}
                 className={styles.authBtn}
               >
@@ -299,6 +356,11 @@ export default function Home() {
                           required
                         />
                       </div>
+                      {authError && (
+                        <div className={styles.inlineError} style={{ marginBottom: "0.75rem", marginTop: 0 }}>
+                          <span>⚠️</span> {authError}
+                        </div>
+                      )}
                       <button
                         type="submit"
                         className={styles.btn}
@@ -346,9 +408,36 @@ export default function Home() {
             </form>
           </div>
 
+          {/* Skeletons when initial loading and no data exists yet */}
+          {loading && !apodData && (
+            <>
+              {/* Skeleton Source Telemetry */}
+              <div className={`${styles.glassCard} ${styles.skeletonPulse}`}>
+                <h2 className={styles.cardTitle}>
+                  <span className={styles.cardTitleIcon}>☄️</span> Source Telemetry
+                </h2>
+                <div className={`${styles.skeletonThumbnail} ${styles.skeletonPulse}`} />
+                <div className={`${styles.skeletonTitle} ${styles.skeletonPulse}`} />
+                <div className={`${styles.skeletonTextShort} ${styles.skeletonPulse}`} style={{ marginBottom: "1rem" }} />
+                <div className={`${styles.skeletonText} ${styles.skeletonPulse}`} />
+                <div className={`${styles.skeletonText} ${styles.skeletonPulse}`} />
+                <div className={`${styles.skeletonText} ${styles.skeletonPulse}`} />
+              </div>
+              {/* Skeleton Stylization controls */}
+              <div className={`${styles.glassCard} ${styles.skeletonPulse}`}>
+                <h2 className={styles.cardTitle}>
+                  <span className={styles.cardTitleIcon}>⚙️</span> Stylization Matrix
+                </h2>
+                <div className={`${styles.skeletonControl} ${styles.skeletonPulse}`} />
+                <div className={`${styles.skeletonControl} ${styles.skeletonPulse}`} />
+                <div className={`${styles.skeletonControl} ${styles.skeletonPulse}`} />
+              </div>
+            </>
+          )}
+
           {/* APOD Metadata Display */}
-          {apodData?.source && !error && (
-            <div className={styles.glassCard}>
+          {apodData?.source && !error && (!loading || apodData) && (
+            <div className={styles.glassCard} style={{ opacity: loading ? 0.6 : 1, transition: "opacity 0.2s" }}>
               <h2 className={styles.cardTitle}>
                 <span className={styles.cardTitleIcon}>☄️</span> Source Telemetry
               </h2>
@@ -373,8 +462,8 @@ export default function Home() {
           )}
 
           {/* ASCII Conversion Parameters */}
-          {styleOverride && !error && (
-            <div className={styles.glassCard}>
+          {styleOverride && !error && (!loading || apodData) && (
+            <div className={styles.glassCard} style={{ opacity: loading ? 0.6 : 1, transition: "opacity 0.2s" }}>
               <h2 className={styles.cardTitle}>
                 <span className={styles.cardTitleIcon}>⚙️</span> Stylization Matrix
               </h2>
@@ -389,6 +478,7 @@ export default function Home() {
                   onChange={(e) =>
                     handleStyleChange({ charSet: e.target.value as AsciiStyle["charSet"] })
                   }
+                  disabled={loading}
                 >
                   <option value="standard">Standard (.-=+*#%@)</option>
                   <option value="fine">Fine (Smooth Gradients)</option>
@@ -410,6 +500,7 @@ export default function Home() {
                     className={styles.slider}
                     value={styleOverride.density}
                     onChange={(e) => handleStyleChange({ density: parseFloat(e.target.value) })}
+                    disabled={loading}
                   />
                   <span className={styles.sliderValue}>{styleOverride.density.toFixed(2)}</span>
                 </div>
@@ -422,6 +513,7 @@ export default function Home() {
                     className={styles.checkbox}
                     checked={styleOverride.invert}
                     onChange={(e) => handleStyleChange({ invert: e.target.checked })}
+                    disabled={loading}
                   />
                   <span className={styles.label}>Invert Luminance Ramp</span>
                 </label>
@@ -432,11 +524,24 @@ export default function Home() {
 
         {/* Right Column: ASCII Art Viewport + AI Insights */}
         <section className={styles.rightCol}>
-          {/* Main Output State Render */}
-          {loading && (
+          {/* Main Output State Render: Loading, Skeletons & Cosmic Telemetry */}
+          {loading && !apodData && (
             <div className={styles.loadingContainer}>
               <div className={styles.spinner}></div>
-              <p>Acquiring NASA APOD and generating matrix configurations...</p>
+              <div className={styles.telemetryLogContainer}>
+                <div className={styles.telemetryLogText}>
+                  {loaderStep >= 0 && "📡 Uplinking with NASA planetary directory..."}
+                </div>
+                <div className={styles.telemetryLogText} style={{ animationDelay: "0.1s" }}>
+                  {loaderStep >= 1 && "💿 Downloading image telemetry data..."}
+                </div>
+                <div className={styles.telemetryLogText} style={{ animationDelay: "0.2s" }}>
+                  {loaderStep >= 2 && "🤖 Synchronizing AI stylization matrix..."}
+                </div>
+                <div className={styles.telemetryLogText} style={{ animationDelay: "0.3s" }}>
+                  {loaderStep >= 3 && "🎨 Formatting monospace ASCII rendering..."}
+                </div>
+              </div>
             </div>
           )}
 
@@ -446,10 +551,17 @@ export default function Home() {
                 <span>⚠️</span> Transmission Failure
               </div>
               <p className={styles.errorDesc}>{error}</p>
+              <button
+                onClick={() => fetchApodData(activeDate, styleOverride)}
+                className={styles.retryBtn}
+              >
+                🔄 Retry Connection
+              </button>
             </div>
           )}
 
-          {!loading && !error && apodData?.ascii && (
+          {/* ASCII Art Viewport (renders when we have data, showing an overlay spinner if loading additional styling overrides) */}
+          {apodData?.ascii && !error && (
             <>
               {/* ASCII Output Card */}
               <div
@@ -458,13 +570,35 @@ export default function Home() {
                 }`}
                 onMouseEnter={() => setViewportHover(true)}
                 onMouseLeave={() => setViewportHover(false)}
+                style={{ position: "relative" }}
               >
+                {loading && (
+                  <div style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: "rgba(5, 6, 8, 0.7)",
+                    backdropFilter: "blur(4px)",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "1rem",
+                    zIndex: 20
+                  }}>
+                    <div className={styles.spinner} style={{ width: "35px", height: "35px" }}></div>
+                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Recalculating ASCII projection...</p>
+                  </div>
+                )}
                 {/* Floating control buttons */}
                 <div className={styles.floatingControls}>
                   <button
                     className={styles.floatingBtn}
                     onClick={handleCopy}
                     title="Copy Raw ASCII to Clipboard"
+                    disabled={loading}
                   >
                     {copied ? "✅" : "📋"}
                   </button>
@@ -472,15 +606,16 @@ export default function Home() {
                     className={styles.floatingBtn}
                     onClick={handleZoom}
                     title="Fullscreen Zoom"
+                    disabled={loading}
                   >
                     🔍
                   </button>
                 </div>
-                <pre className={styles.preArt}>{apodData.ascii}</pre>
+                <pre className={styles.preArt} style={{ opacity: loading ? 0.3 : 1 }}>{apodData.ascii}</pre>
               </div>
 
               {/* System Telemetry Section */}
-              <div className={styles.telemetryGrid}>
+              <div className={styles.telemetryGrid} style={{ opacity: loading ? 0.5 : 1 }}>
                 {/* AI Style badge */}
                 <div
                   className={`${styles.badge} ${
@@ -528,10 +663,15 @@ export default function Home() {
 
               {/* Save Render Card (Only when logged in) */}
               {session && (
-                <div className={styles.glassCard} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div className={styles.glassCard} style={{ display: "flex", flexDirection: "column", gap: "1rem", opacity: loading ? 0.5 : 1 }}>
                   <h3 className={styles.cardTitle} style={{ fontSize: "1.05rem", paddingBottom: "0.5rem", marginBottom: 0 }}>
                     💾 Save to Space Archive
                   </h3>
+                  {saveError && (
+                    <div className={styles.inlineError} style={{ margin: 0 }}>
+                      <span>⚠️</span> {saveError}
+                    </div>
+                  )}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", width: "100%" }}>
                     <label className={styles.checkboxContainer} style={{ margin: 0 }}>
                       <input
@@ -539,6 +679,7 @@ export default function Home() {
                         className={styles.checkbox}
                         checked={saveIsPublic}
                         onChange={(e) => setSaveIsPublic(e.target.checked)}
+                        disabled={loading}
                       />
                       <span className={styles.label}>Publish to public feed</span>
                     </label>
@@ -546,7 +687,7 @@ export default function Home() {
                       className={styles.btn}
                       style={{ width: "auto", minWidth: "160px", padding: "0.6rem 1.2rem", fontSize: "0.9rem" }}
                       onClick={handleSaveRender}
-                      disabled={saveLoading}
+                      disabled={saveLoading || loading}
                     >
                       {saveLoading ? "Saving..." : saveSuccess ? "Saved! 🚀" : "Save Render"}
                     </button>
@@ -555,7 +696,7 @@ export default function Home() {
               )}
 
               {/* AI Insights Card */}
-              <div className={styles.glassCard}>
+              <div className={styles.glassCard} style={{ opacity: loading ? 0.5 : 1 }}>
                 <h2 className={styles.cardTitle}>
                   <span className={styles.cardTitleIcon}>💡</span> AI Insights
                 </h2>
