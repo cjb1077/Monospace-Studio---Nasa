@@ -89,3 +89,22 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - Identified a critical discrepancy where the `cached_apods` caching table and query logic were detailed in design specs and sequence diagrams but omitted from `IMPLEMENTATION.md`'s database definition and build plan.
   - Clarified with the user and decided to make caching a core feature of the build plan.
   - Updated `IMPLEMENTATION.md` database schema (Section 8) and task items (Section 9, Phase 3.4 and Phase 5.2) to incorporate the `cached_apods` table, query caching logic, and schema migration step.
+
+---
+
+## 7. Phase 0 — Project Bootstrap (2026-06-29)
+* **Status:** Complete (Issues #1, #2, #3, #4 closed).
+* **Findings & Decisions:**
+  - `create-next-app` cannot scaffold into a non-empty directory. Resolved by scaffolding into a temp `nextjs-scaffold/` subdirectory, copying the generated files (`src/`, `public/`, `package.json`, `tsconfig.json`, `next.config.ts`, `eslint.config.mjs`, `next-env.d.ts`, `package-lock.json`) into the project root, then removing the temp directory.
+  - Package name updated from `nextjs-scaffold` to `monospace-studio`.
+  - Added Vitest 3.x + `@vitejs/plugin-react` + `tsx` devDependencies to `package.json`.
+  - Created `vitest.config.ts` (node environment, `tests/**/*.{test,spec}.{ts,tsx}` glob, `@/*` alias).
+  - Created `tests/smoke.test.ts` — trivial passing assertion to confirm Vitest is wired.
+  - `.env.local.example` was already complete and accurate; no changes needed.
+  - `.gitignore` was already correct; no changes needed.
+* **Verification Results:**
+  - `npm test` → 1 passed, 0 failed ✅
+  - `npm run build` → compiled and generated static pages successfully ✅
+  - `git status` → clean working tree after commit `ef7df68` ✅
+* **Commit:** `feat: scaffold Next.js App Router TypeScript app with Vitest (resolves #1, #2, #3)`
+
