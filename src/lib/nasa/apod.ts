@@ -87,47 +87,52 @@ export async function fetchApod(date?: string): Promise<NasaApodResponse> {
       url += `&date=${currentDate}`;
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-    let data: NasaApodResponse;
-    try {
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (res.status === 429) {
-        throw new ApodError("NASA API rate limit exceeded.", "NASA_RATE_LIMIT", 429);
-      }
-
-      if (!res.ok) {
-        let errMsg = `NASA API error: ${res.statusText}`;
-        try {
-          const errorData = await res.json();
-          if (errorData.msg) {
-            errMsg = errorData.msg;
-          } else if (errorData.error?.message) {
-            errMsg = errorData.error.message;
-          }
-        } catch {
-          // ignore JSON parsing errors for error bodies
-        }
-        throw new ApodError(errMsg, "NASA_DOWN", res.status);
-      }
-
-      data = await res.json() as NasaApodResponse;
-      if (!data.url || !data.title || !data.explanation || !data.media_type) {
-        throw new ApodError("Incomplete response from NASA APOD API.", "NASA_DOWN", 502);
-      }
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error instanceof ApodError) {
-        throw error;
-      }
-      if (error.name === "AbortError") {
-        throw new ApodError("NASA APOD API request timed out.", "NASA_DOWN", 504);
-      }
-      throw new ApodError(error.message || "Failed to contact NASA APOD API.", "NASA_DOWN", 502);
+    if (attempts > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
+
+    const data = await withNasaRetry(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.status === 429) {
+          throw new ApodError("NASA API rate limit exceeded.", "NASA_RATE_LIMIT", 429);
+        }
+
+        if (!res.ok) {
+          let errMsg = `NASA API error: ${res.statusText}`;
+          try {
+            const errorData = await res.json();
+            if (errorData.msg) {
+              errMsg = errorData.msg;
+            } else if (errorData.error?.message) {
+              errMsg = errorData.error.message;
+            }
+          } catch {
+            // ignore JSON parsing errors for error bodies
+          }
+          throw new ApodError(errMsg, "NASA_DOWN", res.status);
+        }
+
+        const parsed = await res.json() as NasaApodResponse;
+        if (!parsed.url || !parsed.title || !parsed.explanation || !parsed.media_type) {
+          throw new ApodError("Incomplete response from NASA APOD API.", "NASA_DOWN", 502);
+        }
+        return parsed;
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error instanceof ApodError) {
+          throw error;
+        }
+        if (error.name === "AbortError") {
+          throw new ApodError("NASA APOD API request timed out.", "NASA_DOWN", 504);
+        }
+        throw new ApodError(error.message || "Failed to contact NASA APOD API.", "NASA_DOWN", 502);
+      }
+    });
 
     if (!originalRequestedDate) {
       originalRequestedDate = data.date;
@@ -164,34 +169,36 @@ export async function fetchApod(date?: string): Promise<NasaApodResponse> {
 }
 
 export async function downloadImage(url: string): Promise<Buffer> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  return withNasaRetry(async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
 
-    if (!res.ok) {
-      throw new ApodError(`Image download failed with status ${res.status}: ${res.statusText}`, "NASA_DOWN", res.status);
-    }
+      if (!res.ok) {
+        throw new ApodError(`Image download failed with status ${res.status}: ${res.statusText}`, "NASA_DOWN", res.status);
+      }
 
-    const contentType = res.headers.get("content-type");
-    if (!contentType || !contentType.startsWith("image/")) {
-      throw new ApodError(`Invalid image content type: ${contentType || "unknown"}.`, "NASA_DOWN", 502);
-    }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.startsWith("image/")) {
+        throw new ApodError(`Invalid image content type: ${contentType || "unknown"}.`, "NASA_DOWN", 502);
+      }
 
-    const arrayBuffer = await res.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error instanceof ApodError) {
-      throw error;
+      const arrayBuffer = await res.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error instanceof ApodError) {
+        throw error;
+      }
+      if (error.name === "AbortError") {
+        throw new ApodError("NASA APOD API request timed out.", "NASA_DOWN", 504);
+      }
+      throw new ApodError(error.message || "Failed to download image from NASA.", "NASA_DOWN", 502);
     }
-    if (error.name === "AbortError") {
-      throw new ApodError("NASA APOD API request timed out.", "NASA_DOWN", 504);
-    }
-    throw new ApodError(error.message || "Failed to download image from NASA.", "NASA_DOWN", 502);
-  }
+  });
 }
 
 

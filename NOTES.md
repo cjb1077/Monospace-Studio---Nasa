@@ -317,4 +317,4 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - Wrote 3 comprehensive unit tests in `tests/nasa.test.ts` verifying immediate success, successful retries on 429/502/503/504, and immediate propagation of non-retryable errors (e.g. 400).
 * **Verification Results:**
   - `npx vitest tests/nasa.test.ts --run` → 21 passing tests (including new retry tests) ✅
-
+  - **Task 2:** Refactored `fetchApod()` and `downloadImage()` in `src/lib/nasa/apod.ts` to wrap their fetch operations inside the retry helper. Added a 500ms throttle delay inside the walkback loop of `fetchApod()` for attempts after the first. All existing unit/integration tests continue to pass seamlessly with the new retry/throttling behavior.
