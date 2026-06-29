@@ -195,4 +195,20 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npx vitest tests/caption.test.ts --run` → 4 tests passed ✅
   - `npx vitest run` → 42 tests passed ✅
 
+---
+
+## 13. Phase 3.4 — APOD Integration & Database Caching (2026-06-29)
+* **Status:** Complete (Issue #14 closed).
+* **Decisions:**
+  - Implemented initial check in `cached_apods` by requested date to optimize response time.
+  - Implemented nested cache check by the actual resolved date returned from `fetchApod()` (which covers walkback logic preventing duplicate style/caption calls for the same resolved image).
+  - Switched local development LLM provider in `.env.local` to `trussed` and set the model to `gpt-5.4` since the local LM Studio version was throwing a 400 error requiring `json_schema` response format instead of `json_object`.
+  - Wrote a new integration test suite `tests/api-apod.test.ts` to mock Supabase DB, NASA APIs, and LLM APIs to verify cache hits, cache misses, and walkback cache operations.
+  - Updated `scripts/test-features.ts` helper script imports to map correctly to exported functions (`recommendStyle` and `recommendCaption`).
+* **Verification Results:**
+  - `npx vitest tests/api-apod.test.ts --run` → 3 tests passed ✅
+  - `npx vitest run` → 45 tests passed ✅
+  - `curl` queries to `/api/apod?date=2024-01-01` cache hit latency is ~176ms ✅
+
+
 
