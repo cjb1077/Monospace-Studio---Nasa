@@ -241,29 +241,30 @@ Deletes an owned render from the database.
 
 The application leverages local models and proxy solutions to keep active hosting costs at **$0**.
 
-### Default Production & Local Dev Setup ($0)
-* **NASA APOD API:** Free tier (limited requests per hour, resolved via server-side Supabase caching which eliminates duplicate downstream request volumes).
-* **LM Studio (Local Dev):** Free, self-hosted on local hardware.
+### Pinned Local Dev & Production Setup ($0)
+* **NASA APOD API:** Free tier (limited requests per hour, optimized via server-side Supabase caching which eliminates duplicate downstream request volumes).
+* **LM Studio (Local Dev):** Free, self-hosted locally on local hardware.
 * **FAU Trussed (Demo/Staging):** Free course-provided API endpoint.
 
 ### Pricing Structure for Paid OpenAI API Swaps
-If you swap out the provider configuration to point to a paid endpoint (like `gpt-4o-mini`), costs map to the following mathematical model:
+If you swap out the provider configuration to point to a paid endpoint (like standard `gpt-5.4`), costs map to the following mathematical model:
 
 $$\text{Cost per Generate} = (\text{Input Tokens} \times \text{Input Price}) + (\text{Output Tokens} \times \text{Output Price})$$
 
-* **Input Tokens (per query):**
-  - Prompt overhead system instruction: ~250 tokens
-  - Trimmed NASA APOD text (capped at 1,500 characters): ~350 tokens
-  - **Total Input Tokens:** ~600 tokens
-* **Output Tokens (per query):**
+* **Input Tokens (per cache-miss query):**
+  - Feature 1 (Style Selection): system prompt (~250 tokens) + input text (~350 tokens) = ~600 tokens
+  - Feature 2 (Captioning): system prompt (~150 tokens) + input text (~350 tokens) = ~500 tokens
+  - **Combined Input Tokens:** ~1,100 tokens
+* **Output Tokens (per cache-miss query):**
   - Style JSON output (Feature 1): ~60 tokens
   - Caption JSON output (Feature 2): ~120 tokens
   - **Total Output Tokens:** ~180 tokens
 
-#### Sample Calculation (using `gpt-4o-mini` rates: $0.150 / 1M input, $0.600 / 1M output):
-* **Input Cost:** $600 \times \frac{0.15}{1,000,000} = \$0.00009$
-* **Output Cost:** $180 \times \frac{0.60}{1,000,000} = \$0.000108$
-* **Total Cost per Fetch:** **$0.000198** (Approx. **5,050 APOD fetches per $1.00**)
+#### Sample Calculation (using standard `gpt-5.4` rates: $2.50 / 1M input, $15.00 / 1M output):
+On a cache miss, both Feature 1 and Feature 2 completions are executed:
+* **Combined Input Cost:** $1,100 \times \frac{2.50}{1,000,000} = \$0.00275$
+* **Combined Output Cost:** $180 \times \frac{15.00}{1,000,000} = \$0.00270$
+* **Total Cost per Cache Miss Fetch:** **$0.00545** (Approx. **183 APOD fetches per $1.00**)
 
 *Note: Enabling the Supabase `cached_apods` table caching strategy ensures that repeated requests for any date consume exactly $0 in API costs.*
 
