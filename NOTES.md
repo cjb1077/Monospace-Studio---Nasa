@@ -69,3 +69,14 @@ If downstream services fail or return malformed/timed-out responses, we apply th
    - Fall back to: `caption` set to the first sentence of the APOD explanation text.
    - `funFact` set to `""` (empty string).
    - Log `aiCaptionUsed: false`.
+
+---
+
+## 5. GitHub Project & Issue Syncing (2026-06-28)
+* **Status:** Complete.
+* **Findings & Decisions:** 
+  - Checked alignment between `IMPLEMENTATION.md` and GitHub issues. Identified a minor consolidation in Phase 2 (Issues 9 and 10 consolidate tasks 2.1-2.4).
+  - Investigated GitHub project visibility. The "ASCII Art Studio" project was created under the user namespace `cjb1077` (Project 3) rather than the organization `FAU-AI-HootCamp-Summer-2026` namespace, which is why it wasn't visible in the repository's Projects tab.
+  - Programmatically synced and added all 27 open issues to the project board.
+  - Noted that the user will need to manually link the personal project to the organization repository via the GitHub Web UI.
+
