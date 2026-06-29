@@ -44,7 +44,7 @@ Browser -> Next.js API route -> src/lib/llm/ -> LM Studio | Trussed | OpenAI
 
 ## 3. Environment configuration
 
-Copy `.env.example` -> `.env.local`. Pick one provider block.
+Copy `.env.local.example` -> `.env.local`. Pick one provider block.
 
 ### Option A -- LM Studio (local dev default)
 1. Load an **instruct** model in LM Studio (e.g. `qwen/qwen2.5-27b-instruct`).
