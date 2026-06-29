@@ -7,6 +7,7 @@ export interface NasaApodResponse {
   title: string;
   url: string;
   copyright?: string;
+  usedFallbackImage?: boolean;
 }
 
 export interface ApodSource {

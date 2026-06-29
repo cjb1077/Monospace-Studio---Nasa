@@ -152,4 +152,98 @@ describe("NASA APOD API integration", () => {
       );
     });
   });
+
+  describe("Date Walkback and Fallbacks", () => {
+    it("should walk back to find a valid image when media_type is video", async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            date: "2026-06-28",
+            title: "Space Video",
+            explanation: "Some explanation",
+            media_type: "video",
+            url: "https://example.com/video.mp4",
+            service_version: "v1",
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            date: "2026-06-27",
+            title: "Space Image",
+            explanation: "Beautiful space image explanation",
+            media_type: "image",
+            url: "https://example.com/image.png",
+            service_version: "v1",
+          }),
+        });
+
+      const result = await fetchApod("2026-06-28");
+      expect(result.date).toBe("2026-06-27");
+      expect(result.media_type).toBe("image");
+      expect(result.title).toBe("Space Image");
+      expect(result.usedFallbackImage).toBeUndefined();
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("should return fallback starry image after 7 walkback attempts", async () => {
+      for (let i = 0; i < 8; i++) {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            date: `2026-06-${28 - i}`,
+            title: `Video Day ${i}`,
+            explanation: "Prose explaining video",
+            media_type: "video",
+            url: "https://example.com/video.mp4",
+            service_version: "v1",
+          }),
+        });
+      }
+
+      const result = await fetchApod("2026-06-28");
+      expect(result.title).toBe("Default Starry Sky");
+      expect(result.usedFallbackImage).toBe(true);
+      expect(result.date).toBe("2026-06-28");
+      expect(mockFetch).toHaveBeenCalledTimes(8);
+    });
+
+    it("should stop walkback and return fallback starry image if earliest date reached", async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            date: "1995-06-17",
+            title: "Early Video 1",
+            explanation: "Some early video",
+            media_type: "video",
+            url: "https://example.com/video.mp4",
+            service_version: "v1",
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            date: "1995-06-16",
+            title: "Early Video 2",
+            explanation: "Some early video",
+            media_type: "video",
+            url: "https://example.com/video.mp4",
+            service_version: "v1",
+          }),
+        });
+
+      const result = await fetchApod("1995-06-17");
+      expect(result.title).toBe("Default Starry Sky");
+      expect(result.usedFallbackImage).toBe(true);
+      expect(result.date).toBe("1995-06-17");
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
 });

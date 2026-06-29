@@ -111,13 +111,18 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 ---
 
 ## 8. Phase 1 — NASA APOD Integration (2026-06-29)
-* **Status:** In Progress (Task 1.1 Complete).
+* **Status:** In Progress (Tasks 1.1 and 1.2 Complete).
 * **Findings & Decisions:**
   - **Task 1.1 [Issue 5]** Complete. Created `src/lib/types.ts` for interfaces and `src/lib/nasa/apod.ts` containing the custom error classes, date validators, and fetch function. Added a 10s fetch timeout and typed error mappings.
   - Added unit test suite `tests/nasa.test.ts` to fully cover validation and response handling under Vitest.
   - Added CLI smoke test runner `scripts/test-fetch-apod.ts` to test live calls.
+  - **Task 1.2 [Issue 6]** Complete. Implemented date walkback logic (up to 7 days) in `fetchApod()` using safe UTC-based date calculations. Created a default starry sky image asset `/public/starry.png` (from a custom generated asset) to serve as a high-quality visual placeholder if walkback limit is exceeded or earliest date (1995-06-16) is crossed.
+  - Added 3 new unit tests in `tests/nasa.test.ts` asserting:
+    1. Walkback correctly finds the first image day when encountering videos.
+    2. Fallback values with `usedFallbackImage: true` are returned if 7 attempts are exceeded.
+    3. Walkback stops and returns fallback if date decrements past the launch date `1995-06-16`.
 * **Verification Results:**
-  - `npx vitest tests/nasa.test.ts --run` → 11 tests passed ✅
+  - `npx vitest tests/nasa.test.ts --run` → 15 tests passed ✅
   - `npx tsx scripts/test-fetch-apod.ts` (with NASA DEMO_KEY) → Live APOD details fetched and logged successfully ✅
 
 
