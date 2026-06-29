@@ -1,8 +1,8 @@
 # IMPLEMENTATION.md -- ASCII Art Studio
 
 The source of truth for architecture, contracts, and the ordered build plan. Read
-`AGENTS.md` first for the rules of engagement (security invariants, testing, do-nots).
-Build the phases in order; each task is small and has a verification step.
+`AGENTS.md` first for the rules of engagement (including the mandatory **Git, GitHub, and Notes Workflow** for tracking and updating issue/project board states).
+Build the phases in order; each task is small, has a verification step, and requires running the tracking sync commands.
 
 ---
 

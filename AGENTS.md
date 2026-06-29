@@ -46,6 +46,29 @@ Both return structured JSON, never free-form chat. Both have non-AI fallbacks.
   `NOTES.md` rather than silently diverging. The plan stays the source of truth; update
   it deliberately.
 
+### Git, GitHub, and Notes Workflow (Tracking Rules)
+To ensure consistent alignment across project states, any developer or AI agent working on a task must execute the following checklist:
+
+1. **When Starting a Task/Issue:**
+   - **Notes:** Log a brief entry under the active phase in `NOTES.md` declaring the task start.
+   - **GitHub & Project Board:** Transition the issue status to "In Progress" and assign it to yourself using:
+     ```powershell
+     powershell -File scripts/sync-task.ps1 -IssueNumber <num> -Action start
+     ```
+
+2. **When Completing a Task/Issue:**
+   - **Verification:** Execute all specified tests/verification scripts.
+   - **Notes:** Append decisions, assumptions, and test results under the task section in `NOTES.md`.
+   - **Git Commit:** Commit changes using a format referencing the issue:
+     ```bash
+     git add <changed-files>
+     git commit -m "feat/fix/docs: description (resolves #<num>)"
+     ```
+   - **GitHub & Project Board:** Close the issue and mark it as "Done" on the board using:
+     ```powershell
+     powershell -File scripts/sync-task.ps1 -IssueNumber <num> -Action done
+     ```
+
 ## Use Superpowers
 This project runs on the Superpowers methodology. Let the skills drive the flow -- do not
 improvise around them:
