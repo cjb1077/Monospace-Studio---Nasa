@@ -318,3 +318,7 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 * **Verification Results:**
   - `npx vitest tests/nasa.test.ts --run` → 21 passing tests (including new retry tests) ✅
   - **Task 2:** Refactored `fetchApod()` and `downloadImage()` in `src/lib/nasa/apod.ts` to wrap their fetch operations inside the retry helper. Added a 500ms throttle delay inside the walkback loop of `fetchApod()` for attempts after the first. All existing unit/integration tests continue to pass seamlessly with the new retry/throttling behavior.
+  - **Task 3:** Implemented client-side button cooldown logic using `isCooldown` state in `src/app/page.tsx`. Initiating any date-changing request sets `isCooldown` to `true` and sets a timeout to clear it after 1500ms. Form input and navigation buttons (📅 Today, ⬅️ Yesterday, 🎲 Random, ◀ / ▶) are disabled during `loading || isCooldown`.
+* **Verification Results:**
+  - `npx vitest` → 57 tests passed successfully (all suites) ✅
+  - `npm run build` → Next.js compiled cleanly with zero TypeScript or Turbopack compiler errors ✅

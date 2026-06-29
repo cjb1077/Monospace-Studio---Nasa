@@ -46,6 +46,7 @@ export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
   const todayEst = isMounted ? getTodayEst() : "";
   const [loading, setLoading] = useState(true);
+  const [isCooldown, setIsCooldown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apodData, setApodData] = useState<ApodApiResponse | null>(null);
   
@@ -180,7 +181,12 @@ export default function Home() {
     abortControllerRef.current = abortController;
 
     setLoading(true);
+    setIsCooldown(true);
     setError(null);
+
+    setTimeout(() => {
+      setIsCooldown(false);
+    }, 1500);
 
     try {
       let url = `/api/apod?date=${targetDate}`;
@@ -458,7 +464,7 @@ export default function Home() {
                     type="button"
                     className={styles.stepperBtn}
                     onClick={handlePrevDay}
-                    disabled={loading || isMinDate}
+                    disabled={loading || isCooldown || isMinDate}
                     title="Previous Day"
                   >
                     ◀
@@ -471,13 +477,13 @@ export default function Home() {
                     max={todayEst}
                     value={inputDate}
                     onChange={(e) => setInputDate(e.target.value)}
-                    disabled={loading}
+                    disabled={loading || isCooldown}
                   />
                   <button
                     type="button"
                     className={styles.stepperBtn}
                     onClick={handleNextDay}
-                    disabled={loading || isToday}
+                    disabled={loading || isCooldown || isToday}
                     title="Next Day"
                   >
                     ▶
@@ -488,7 +494,7 @@ export default function Home() {
                     type="button"
                     className={styles.shortcutBtn}
                     onClick={handleToday}
-                    disabled={loading || isToday}
+                    disabled={loading || isCooldown || isToday}
                     title="Load Today's APOD"
                   >
                     📅 Today
@@ -497,7 +503,7 @@ export default function Home() {
                     type="button"
                     className={styles.shortcutBtn}
                     onClick={handleYesterday}
-                    disabled={loading || isMinDate}
+                    disabled={loading || isCooldown || isMinDate}
                     title="Load Yesterday's APOD"
                   >
                     ⬅️ Yesterday
@@ -506,14 +512,14 @@ export default function Home() {
                     type="button"
                     className={styles.shortcutBtn}
                     onClick={handleRandom}
-                    disabled={loading}
+                    disabled={loading || isCooldown}
                     title="Load a Random APOD"
                   >
                     🎲 Random
                   </button>
                 </div>
               </div>
-              <button type="submit" className={styles.btn} disabled={loading}>
+              <button type="submit" className={styles.btn} disabled={loading || isCooldown}>
                 {loading ? "Transmitting..." : "Generate Cosmic Art"}
               </button>
             </form>
