@@ -36,10 +36,11 @@ async function getStyle(
 ): Promise<StyleResult> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const mod = await (new Function('p', 'return import(p)')("../src/lib/style/index")) as { getAsciiStyle: (t: string, e: string) => Promise<Omit<StyleResult, 'aiStyleUsed'>> };
-    const result = await mod.getAsciiStyle(title, explanation);
-    return { ...result, aiStyleUsed: true };
-  } catch {
+    const mod = await (new Function('p', 'return import(p)')("../src/lib/style/index")) as { recommendStyle: (t: string, e: string) => Promise<{ style: Omit<StyleResult, 'aiStyleUsed'>; aiStyleUsed: boolean }> };
+    const result = await mod.recommendStyle(title, explanation);
+    return { ...result.style, aiStyleUsed: result.aiStyleUsed };
+  } catch (err) {
+    console.error("Style import error:", err);
     return { charSet: "standard", density: 0.6, invert: false, aiStyleUsed: false };
   }
 }
@@ -52,10 +53,11 @@ async function getCaption(
 ): Promise<CaptionResult> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const mod = await (new Function('p', 'return import(p)')("../src/lib/caption/index")) as { getAiCaption: (t: string, e: string) => Promise<Omit<CaptionResult, 'aiCaptionUsed'>> };
-    const result = await mod.getAiCaption(title, explanation);
-    return { ...result, aiCaptionUsed: true };
-  } catch {
+    const mod = await (new Function('p', 'return import(p)')("../src/lib/caption/index")) as { recommendCaption: (t: string, e: string) => Promise<{ caption: string; funFact: string; aiCaptionUsed: boolean }> };
+    const result = await mod.recommendCaption(title, explanation);
+    return result;
+  } catch (err) {
+    console.error("Caption import error:", err);
     const firstSentence = explanation.split(/[.!?]/)[0]?.trim() ?? "";
     return { caption: firstSentence, funFact: "", aiCaptionUsed: false };
   }
