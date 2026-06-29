@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fetchApod, ApodError } from "../src/lib/nasa/apod";
+import { fetchApod, ApodError, downloadImage } from "../src/lib/nasa/apod";
 
 describe("NASA APOD API integration", () => {
   const originalApiKey = process.env.NASA_API_KEY;
@@ -244,6 +244,68 @@ describe("NASA APOD API integration", () => {
       expect(result.usedFallbackImage).toBe(true);
       expect(result.date).toBe("1995-06-17");
       expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("downloadImage", () => {
+    const originalFetch = global.fetch;
+    const mockFetch = vi.fn();
+
+    beforeEach(() => {
+      global.fetch = mockFetch;
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+      mockFetch.mockReset();
+    });
+
+    it("should successfully download an image and return a Buffer", async () => {
+      const mockBuffer = Buffer.from("fake-image-bytes");
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "image/jpeg" }),
+        arrayBuffer: async () => mockBuffer.buffer.slice(mockBuffer.byteOffset, mockBuffer.byteOffset + mockBuffer.byteLength),
+      });
+
+      const buffer = await downloadImage("https://example.com/starry.jpg");
+      expect(Buffer.isBuffer(buffer)).toBe(true);
+      expect(buffer.toString()).toBe("fake-image-bytes");
+    });
+
+    it("should throw an ApodError with code NASA_DOWN and status 502 if response content-type is invalid", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "text/html" }),
+      });
+
+      await expect(downloadImage("https://example.com/not-an-image.html")).rejects.toThrowError(
+        new ApodError("Invalid image content type: text/html.", "NASA_DOWN", 502)
+      );
+    });
+
+    it("should throw an ApodError with code NASA_DOWN and the HTTP status if status is not ok", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+      });
+
+      await expect(downloadImage("https://example.com/missing.jpg")).rejects.toThrowError(
+        new ApodError("Image download failed with status 404: Not Found", "NASA_DOWN", 404)
+      );
+    });
+
+    it("should throw an ApodError with code NASA_DOWN and status 504 on timeout (AbortError)", async () => {
+      const abortError = new Error("The user aborted a request.");
+      abortError.name = "AbortError";
+      mockFetch.mockRejectedValue(abortError);
+
+      await expect(downloadImage("https://example.com/timeout.jpg")).rejects.toThrowError(
+        new ApodError("NASA APOD API request timed out.", "NASA_DOWN", 504)
+      );
     });
   });
 });
