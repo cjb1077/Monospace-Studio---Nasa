@@ -280,6 +280,19 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `README.md` reviewed and updated successfully ✅
   - `npm test` → 54 passing tests, no regressions ✅
 
+---
+
+## 19. Cost Analysis Documentation Update (2026-06-29)
+* **Status:** Complete.
+* **Decisions & Implementation Details:**
+  - Created a comprehensive `docs/COST_ANALYSIS.md` detailing cost models, assumptions, and projections based on standard GPT-5.4 rates (Input: $2.50 / 1M, Output: $15.00 / 1M) and local LM Studio rates ($0).
+  - Pre-filled the actual usage log in `COST_ANALYSIS.md` with simulated token counts and estimated costs (approx. $0.38 total for 70 dev + demo queries).
+  - Updated Section 6 of `README.md` to match standard GPT-5.4 rates, detailing the combined input token profile (~1,100 tokens) and output token profile (~180 tokens) per cache-miss fetch.
+* **Verification Results:**
+  - `npm test` → 54 passing tests, no regressions ✅
+  - Verified creation and formatting of `docs/COST_ANALYSIS.md` ✅
+
+
 
 
 
