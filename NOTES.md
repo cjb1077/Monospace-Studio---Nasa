@@ -269,6 +269,17 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `postman/collection.json` successfully created and validated as structurally sound JSON ✅
   - `npm test` → 54 passing tests, no regressions ✅
 
+---
+
+## 18. Phase 6.3 — Complete README Documentation and Cost Estimates (2026-06-29)
+* **Status:** Complete (Issue #26 closed).
+* **Decisions & Implementation Details:**
+  - Reviewed `README.md` to ensure all key components are present: overview, setup instructions, env vars, run steps, AI features section, endpoint docs, and cost estimates.
+  - Added specific instructions for finding and running the new Postman/Thunder Client collection in the testing suite section of the README.
+* **Verification Results:**
+  - `README.md` reviewed and updated successfully ✅
+  - `npm test` → 54 passing tests, no regressions ✅
+
 
 
 

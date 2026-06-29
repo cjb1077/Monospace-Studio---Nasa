@@ -287,6 +287,16 @@ Unit and integration tests are run via **Vitest**.
   npm run test:features
   ```
 
+### API Endpoint Testing (Postman)
+A Postman collection is provided in the repository to verify all HTTP endpoint operations:
+* **Collection File:** [postman/collection.json](file:///d:/AI%20Bootcamp/week3-cjb1077/postman/collection.json)
+* **Features Covered:**
+  - `GET /api/apod` (success, specific date, invalid date, future date)
+  - `GET /api/renders` (lists public renders)
+  - `POST /api/renders` (authenticated save, unauthorized rejection, validation/bad payload checks)
+  - `DELETE /api/renders/:id` (authenticated delete, unauthorized delete checks)
+* **Setup:** Import the collection into Postman or Thunder Client, and customize the collection variables (`base_url`, `supabase_jwt`, `render_id`) to point to your target server (e.g. `http://localhost:3000` or Netlify deployment).
+
 ---
 
 ## 8. Demo Walkthrough Video
