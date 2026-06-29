@@ -223,6 +223,22 @@ If downstream services fail or return malformed/timed-out responses, we apply th
   - `npm run build` → compiled Next.js bundle successfully ✅
   - Browser subagent verification: Brand elements, APOD source cards, control forms, interactive Copy / Zoom overlays, custom date loading (e.g. 2024-01-01), and error boundary logs all verified functional without console errors ✅
 
+---
+
+## 15. Phase 5 — Auth + Gallery (2026-06-29)
+* **Status:** Complete (Issues #19, #20, #21, #22, #23 closed).
+* **Decisions:**
+  - Adopted `@supabase/ssr` to manage secure session token storage and lifecycle using cookies in Next.js App Router (Middleware, Server/Client components, and route handlers).
+  - Configured auth callback route handler (`GET /api/auth/callback`) to exchange code tokens for persistent sessions.
+  - Implemented renders CRUD REST API endpoints (`/api/renders` and `/api/renders/[id]`) delegating authorization scopes directly to Supabase RLS.
+  - Built out gallery workspace (`src/app/gallery/page.tsx`) with grid alignments, text searching, and filter tabs (All, Mine, Public) that safely respects owners-only logic.
+* **Verification Results:**
+  - Created new unit/integration tests suite `tests/api-renders.test.ts` (6 tests total).
+  - `npx vitest run` → 54 tests passed successfully ✅
+  - `npm run build` → Next.js compiled cleanly without warnings ✅
+  - Browser subagent verification: Verified gallery layout loads, filters render, search bar works, and navigation toggles to Studio page without console issues ✅
+
+
 
 
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import styles from "./page.module.css";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 interface ApodSource {
   title: string;
@@ -50,11 +51,37 @@ export default function Home() {
   // Style overrides state
   const [styleOverride, setStyleOverride] = useState<AsciiStyle | null>(null);
   
+  // Auth states
+  const [session, setSession] = useState<any>(null);
+  const [showAuthDropdown, setShowAuthDropdown] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
+  // Save states
+  const [saveIsPublic, setSaveIsPublic] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const [copied, setCopied] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [viewportHover, setViewportHover] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Listen to auth changes
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchApodData = async (targetDate: string, overrides: AsciiStyle | null) => {
     if (abortControllerRef.current) {
@@ -137,6 +164,77 @@ export default function Home() {
     setZoomed(!zoomed);
   };
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail) return;
+    setLoginLoading(true);
+    setError(null);
+    try {
+      const supabase = getSupabaseClient();
+      const { error: authErr } = await supabase.auth.signInWithOtp({
+        email: loginEmail,
+        options: {
+          emailRedirectTo: window.location.origin + "/api/auth/callback",
+        },
+      });
+      if (authErr) {
+        setError(authErr.message);
+      } else {
+        setLoginSuccess(true);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to trigger login request.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      const supabase = getSupabaseClient();
+      await supabase.auth.signOut();
+      setSession(null);
+      setShowAuthDropdown(false);
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+  };
+
+  const handleSaveRender = async () => {
+    if (!apodData || !session) return;
+    setSaveLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/renders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: apodData.source?.title,
+          ascii: apodData.ascii,
+          caption: apodData.caption || "",
+          funFact: apodData.funFact || "",
+          sourceDate: apodData.source?.date,
+          isPublic: saveIsPublic,
+        }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        setError(data.error || "Failed to save cosmic render.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Connection error while saving render.");
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Header / Navbar */}
@@ -148,10 +246,73 @@ export default function Home() {
           <a href="#" className={`${styles.navLink} ${styles.navLinkActive}`}>
             🔭 Studio
           </a>
-          <a href="#" className={styles.navLink}>
+          <a href="/gallery" className={styles.navLink}>
             🌌 Gallery
           </a>
-          <button className={styles.authBtn}>Sign In</button>
+
+          {session ? (
+            <div className={styles.userStatus}>
+              <span>🧑‍🚀 {session.user.email}</span>
+              <button onClick={handleSignOut} className={styles.authBtn}>
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => {
+                  setShowAuthDropdown(!showAuthDropdown);
+                  setLoginSuccess(false);
+                }}
+                className={styles.authBtn}
+              >
+                Sign In
+              </button>
+
+              {showAuthDropdown && (
+                <div className={styles.glassCard} style={{
+                  position: "absolute",
+                  right: 0,
+                  top: "120%",
+                  width: "280px",
+                  zIndex: 200,
+                  padding: "1.25rem",
+                  boxShadow: "0 10px 40px rgba(0,0,0,0.7)"
+                }}>
+                  <h3 className={styles.cardTitle} style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>
+                    🚀 Teleport Link
+                  </h3>
+                  {loginSuccess ? (
+                    <div style={{ color: "#34d399", fontSize: "0.875rem", lineHeight: "1.4" }}>
+                      📡 Magic link sent! Please check your email inbox to complete sign-in.
+                    </div>
+                  ) : (
+                    <form onSubmit={handleLogin}>
+                      <div className={styles.formGroup} style={{ marginBottom: "0.75rem" }}>
+                        <input
+                          type="email"
+                          placeholder="astronaut@nasa.gov"
+                          className={styles.dateInput}
+                          style={{ padding: "0.5rem", fontSize: "0.9rem" }}
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className={styles.btn}
+                        style={{ padding: "0.5rem", fontSize: "0.9rem" }}
+                        disabled={loginLoading}
+                      >
+                        {loginLoading ? "Sending..." : "Send Magic Link"}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
       </header>
 
@@ -362,6 +523,34 @@ export default function Home() {
                 <div className={styles.warningBanner}>
                   <span>⚠️</span> The NASA APOD service is currently offline or returned invalid
                   media. Rendered using default local starry assets.
+                </div>
+              )}
+
+              {/* Save Render Card (Only when logged in) */}
+              {session && (
+                <div className={styles.glassCard} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <h3 className={styles.cardTitle} style={{ fontSize: "1.05rem", paddingBottom: "0.5rem", marginBottom: 0 }}>
+                    💾 Save to Space Archive
+                  </h3>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", width: "100%" }}>
+                    <label className={styles.checkboxContainer} style={{ margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        className={styles.checkbox}
+                        checked={saveIsPublic}
+                        onChange={(e) => setSaveIsPublic(e.target.checked)}
+                      />
+                      <span className={styles.label}>Publish to public feed</span>
+                    </label>
+                    <button
+                      className={styles.btn}
+                      style={{ width: "auto", minWidth: "160px", padding: "0.6rem 1.2rem", fontSize: "0.9rem" }}
+                      onClick={handleSaveRender}
+                      disabled={saveLoading}
+                    >
+                      {saveLoading ? "Saving..." : saveSuccess ? "Saved! 🚀" : "Save Render"}
+                    </button>
+                  </div>
                 </div>
               )}
 

@@ -13,6 +13,7 @@
     "test:features": "tsx scripts/test-features.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "dotenv": "^17.4.2",
     "next": "16.2.9",
