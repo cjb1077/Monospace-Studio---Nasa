@@ -321,7 +321,8 @@ describe("convertImageToAscii – output shape", () => {
   });
 
   it("multi-line output has correct number of rows (aspect-ratio corrected)", () => {
-    // 10×10 image → 10 cols, but with 2:1 aspect ratio correction → 5 rows
+    // 10×10 image → 10 cols, aspect-ratio corrected with factor 1.08
+    // rows = Math.round((10/10) * 10 * 1.08) = Math.round(10.8) = 11
     const buf = solidGrey(128, 10, 10);
     const result = convertImageToAscii(buf, {
       width: 10,
@@ -332,7 +333,6 @@ describe("convertImageToAscii – output shape", () => {
       maxWidth: 80,
     });
     const lines = result.split("\n").filter((l) => l.length > 0);
-    // rows = Math.round(10 / 2) = 5
-    expect(lines.length).toBe(5);
+    expect(lines.length).toBe(11);
   });
 });
