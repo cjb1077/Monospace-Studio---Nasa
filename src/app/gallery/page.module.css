@@ -307,26 +307,10 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   height: auto;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: hidden;
   padding: 0.75rem;
   display: block;
   position: relative;
-}
-
-.previewContainer::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-.previewContainer::-webkit-scrollbar-track {
-  background: transparent;
-}
-.previewContainer::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-}
-.previewContainer::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-primary);
 }
 
 .preArt {
@@ -337,7 +321,7 @@
   color: var(--accent-primary);
   white-space: pre;
   user-select: none;
-  width: max-content;
+  overflow: hidden;
   margin: 0;
 }
 
