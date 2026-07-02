@@ -76,6 +76,7 @@ export default function Home() {
   const [viewportHover, setViewportHover] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const rampDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isMinDate = inputDate === "1995-06-16";
   const isToday = inputDate === todayEst;
@@ -253,6 +254,18 @@ export default function Home() {
       return;
     }
     fetchApodData(activeDate, newOverrides);
+  };
+
+  const handleRampInput = (value: string) => {
+    if (!styleOverride) return;
+    const newOverrides = { ...styleOverride, customRamp: value };
+    setStyleOverride(newOverrides);
+    if (rampDebounceRef.current) clearTimeout(rampDebounceRef.current);
+    if (value.length >= 2) {
+      rampDebounceRef.current = setTimeout(() => {
+        fetchApodData(activeDate, newOverrides);
+      }, 500);
+    }
   };
 
   const handleCopy = async () => {
@@ -689,26 +702,91 @@ export default function Home() {
               {styleOverride.charSet === "custom" && (
                 <div className={styles.formGroup}>
                   <label className={styles.label} htmlFor="custom-ramp-input">
-                    Custom Glyph Ramp <span style={{ color: "var(--text-secondary)", fontWeight: 400 }}>(light → dark)</span>
+                    Custom Glyph Ramp <span style={{ color: "var(--text-secondary)", fontWeight: 400 }}>(lightest → darkest)</span>
                   </label>
-                  <input
-                    id="custom-ramp-input"
-                    type="text"
-                    className={styles.dateInput}
-                    placeholder="e.g.  .:-=+*#%@"
-                    value={styleOverride.customRamp ?? ""}
-                    onChange={(e) => handleStyleChange({ customRamp: e.target.value })}
-                    disabled={loading}
-                    style={{ fontFamily: "monospace", letterSpacing: "0.05em" }}
-                  />
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "0.3rem" }}>
-                    {(styleOverride.customRamp?.length ?? 0) < 2
-                      ? "Enter at least 2 characters to render."
-                      : `${styleOverride.customRamp!.length} glyphs — preview: `}
-                    {(styleOverride.customRamp?.length ?? 0) >= 2 && (
-                      <code style={{ fontFamily: "monospace", color: "var(--accent-primary)" }}>{styleOverride.customRamp}</code>
+                  <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                    {([
+                      { label: "Standard", value: " .:-=+*#%@" },
+                      { label: "Smooth",   value: " .:;+=xX$#@" },
+                      { label: "Bars",     value: " ▁▂▃▄▅▆▇█" },
+                      { label: "Braille",  value: " ⣀⣄⣤⣦⣶⣷⣿" },
+                      { label: "Minimal",  value: " @" },
+                    ] as { label: string; value: string }[]).map(({ label, value }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => handleRampInput(value)}
+                        disabled={loading}
+                        style={{
+                          padding: "2px 8px",
+                          fontSize: "0.7rem",
+                          background: styleOverride.customRamp === value ? "var(--accent-primary, #0f0)" : "rgba(255,255,255,0.07)",
+                          color: styleOverride.customRamp === value ? "#000" : "var(--text-secondary)",
+                          border: "1px solid rgba(255,255,255,0.14)",
+                          borderRadius: "3px",
+                          cursor: loading ? "not-allowed" : "pointer",
+                          fontFamily: "inherit",
+                          transition: "background 0.15s",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                    <input
+                      id="custom-ramp-input"
+                      type="text"
+                      className={styles.dateInput}
+                      placeholder=" .:-=+*#%@  ← type your ramp"
+                      value={styleOverride.customRamp ?? ""}
+                      onChange={(e) => handleRampInput(e.target.value)}
+                      disabled={loading}
+                      style={{ fontFamily: "monospace", letterSpacing: "0.1em", flex: 1 }}
+                    />
+                    {(styleOverride.customRamp ?? "").length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRampInput("")}
+                        disabled={loading}
+                        title="Clear ramp"
+                        style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: "1.2rem", lineHeight: 1, padding: "0 4px", flexShrink: 0 }}
+                      >×</button>
                     )}
                   </div>
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "0.35rem" }}>
+                    {(styleOverride.customRamp?.length ?? 0) < 2
+                      ? "Enter at least 2 characters to enable rendering."
+                      : `${styleOverride.customRamp!.length} glyphs — fetches 0.5 s after you stop typing`}
+                  </div>
+                  {(styleOverride.customRamp?.length ?? 0) >= 2 && (
+                    <div style={{ display: "flex", gap: "1px", marginTop: "0.4rem", borderRadius: "4px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
+                      {Array.from(styleOverride.customRamp!).map((char, i) => {
+                        const t = styleOverride.customRamp!.length === 1 ? 0 : i / (styleOverride.customRamp!.length - 1);
+                        const gray = Math.round(255 * (1 - t));
+                        return (
+                          <span
+                            key={i}
+                            title={`index ${i}: '${char === " " ? "space" : char}'`}
+                            style={{
+                              background: `rgb(${gray},${gray},${gray})`,
+                              color: gray > 130 ? "#000" : "#fff",
+                              flex: 1,
+                              textAlign: "center",
+                              padding: "4px 2px",
+                              fontFamily: "monospace",
+                              fontSize: "0.8rem",
+                              minWidth: 0,
+                              overflow: "hidden",
+                              userSelect: "none",
+                            }}
+                          >
+                            {char === " " ? "·" : char}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -725,7 +803,9 @@ export default function Home() {
                     step="0.05"
                     className={styles.slider}
                     value={styleOverride.density}
-                    onChange={(e) => handleStyleChange({ density: parseFloat(e.target.value) })}
+                    onChange={(e) => setStyleOverride({ ...styleOverride, density: parseFloat(e.target.value) })}
+                    onPointerUp={(e) => handleStyleChange({ density: parseFloat((e.target as HTMLInputElement).value) })}
+                    onBlur={(e) => handleStyleChange({ density: parseFloat(e.target.value) })}
                     disabled={loading}
                   />
                   <span className={styles.sliderValue}>{styleOverride.density.toFixed(2)}</span>
@@ -745,7 +825,9 @@ export default function Home() {
                     step="0.05"
                     className={styles.slider}
                     value={styleOverride.brightness ?? 0}
-                    onChange={(e) => handleStyleChange({ brightness: parseFloat(e.target.value) })}
+                    onChange={(e) => setStyleOverride({ ...styleOverride, brightness: parseFloat(e.target.value) })}
+                    onPointerUp={(e) => handleStyleChange({ brightness: parseFloat((e.target as HTMLInputElement).value) })}
+                    onBlur={(e) => handleStyleChange({ brightness: parseFloat(e.target.value) })}
                     disabled={loading}
                   />
                   <span className={styles.sliderValue}>{((styleOverride.brightness ?? 0) >= 0 ? "+" : "") + (styleOverride.brightness ?? 0).toFixed(2)}</span>
