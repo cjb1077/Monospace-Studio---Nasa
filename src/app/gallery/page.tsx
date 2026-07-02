@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "./page.module.css";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
@@ -14,6 +14,65 @@ interface Render {
   sourceDate: string;
   isPublic: boolean;
   createdAt: string;
+}
+
+/** Scales an ASCII art <pre> to fit its container width without scrollbars. */
+function ScaledPreview({ ascii }: { ascii: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+  const [scale, setScale] = useState(1);
+  const [containerHeight, setContainerHeight] = useState<string>("auto");
+
+  useEffect(() => {
+    const measure = () => {
+      const container = containerRef.current;
+      const pre = preRef.current;
+      if (!container || !pre) return;
+
+      // Compute usable inner width (clientWidth excludes border but includes padding)
+      const cs = window.getComputedStyle(container);
+      const paddingH = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      const paddingV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const usableW = container.clientWidth - paddingH;
+
+      // Temporarily force scale(1) so scrollWidth reflects natural content width
+      pre.style.transform = "scale(1)";
+      pre.style.transformOrigin = "top left";
+      const naturalW = pre.scrollWidth;
+      const naturalH = pre.scrollHeight;
+
+      const s = naturalW > usableW ? usableW / naturalW : 1;
+
+      setScale(s);
+      // Tell the container exactly how tall to be so the scaled content fits perfectly
+      setContainerHeight(`${Math.ceil(naturalH * s) + paddingV}px`);
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [ascii]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={styles.previewContainer}
+      style={{ height: containerHeight, overflow: "hidden" }}
+    >
+      <pre
+        ref={preRef}
+        className={styles.preArt}
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          display: "block",
+        }}
+      >
+        {ascii}
+      </pre>
+    </div>
+  );
 }
 
 export default function Gallery() {
@@ -409,9 +468,7 @@ export default function Gallery() {
                   </div>
 
                   {/* ASCII viewport preview */}
-                  <div className={styles.previewContainer}>
-                    <pre className={styles.preArt}>{render.ascii}</pre>
-                  </div>
+                  <ScaledPreview ascii={render.ascii} />
 
                   {/* Caption */}
                   {render.caption && <p className={styles.captionText}>"{render.caption}"</p>}
