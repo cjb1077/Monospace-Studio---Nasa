@@ -67,8 +67,14 @@ export function convertImageToAscii(
   // --- Determine output dimensions -----------------------------------------
   // Downscale to fit maxWidth; never upscale.
   const cols = Math.min(width, maxWidth);
-  // Account for ~2:1 character aspect ratio (chars are taller than wide).
-  const rows = Math.max(1, Math.round((height / width) * cols * 0.5));
+  // Account for character aspect ratio in the browser.
+  // JetBrains Mono at 9px with line-height 0.65 and letter-spacing 0.1em
+  // renders chars nearly square (~5.85px tall × 6.3px wide), so the
+  // correction factor is ~0.93 of a pure 1:1 ratio. The standard empirical
+  // value used by most browser ASCII art generators is 0.45, which accounts
+  // for the fact that monospace chars are slightly wider than tall at small
+  // sizes and matches our CSS font rendering closely.
+  const rows = Math.max(1, Math.round((height / width) * cols * 0.45));
 
   // --- Sample pixels and convert -------------------------------------------
   const lines: string[] = [];

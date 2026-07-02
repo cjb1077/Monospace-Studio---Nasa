@@ -8,7 +8,7 @@ import { recommendCaption } from "@/lib/caption";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { ApiErrorResponse, ApodApiResponse, ApodSource, ErrorCode } from "@/lib/types";
 
-const ASCII_MAX_WIDTH = 120;
+const ASCII_MAX_WIDTH = 220;
 
 /**
  * Maps a single row from public.cached_apods to our standard camelCase API response shape.
