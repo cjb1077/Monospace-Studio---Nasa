@@ -306,8 +306,9 @@
   background: rgba(5, 6, 8, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  height: 160px;
-  overflow: auto;
+  height: auto;
+  overflow-x: auto;
+  overflow-y: visible;
   padding: 0.75rem;
   display: block;
   position: relative;
@@ -337,7 +338,7 @@
   white-space: pre;
   user-select: none;
   width: max-content;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .captionText {
