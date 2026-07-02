@@ -1,5 +1,7 @@
 # Monospace Studio — NASA APOD ASCII Art Studio
 
+monospacestudio.netlify.app
+
 Monospace Studio is a Next.js web application that fetches the daily **NASA Astronomy Picture of the Day (APOD)**, converts it server-side into customized ASCII art, enriches the artwork using structured LLM analyses (Style Direction & Themed Captioning), and allows users to save and share their cosmic renders in a Supabase-backed gallery.
 
 ---

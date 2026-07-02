@@ -142,6 +142,39 @@ Trust the skill triggers; they activate automatically. Do not skip brainstorming
 - Claim a build or test passes without running it.
 - Expand a task beyond what `IMPLEMENTATION.md` specifies for it.
 
+## Demo Video Pipeline
+
+Automated pipeline that records the web app running, generates AI voiceover narrating the features shown, and produces a final MP4. Runs fully automated on Windows.
+
+**Stack**
+
+- **Recording/automation:** Playwright (Python), using native video recording via `record_video_dir`.
+- **Narration script:** local LLM via LM Studio (default `qwen3.5`).
+- **TTS:** Piper (local, offline).
+- **Assembly:** FFmpeg.
+
+**How it works**
+
+1. Playwright walks through the app per `demo_config.json`, recording video and writing a timestamped `action_log.json` (elapsed time → feature label).
+2. The action log is passed to LM Studio, which writes one narration line per step. Output is saved to `narration.json` as `[{start_time, text}]`.
+3. Piper renders one WAV per narration line.
+4. FFmpeg places each WAV at its `start_time` and muxes the audio onto the recorded video, producing `final_demo.mp4`.
+
+**Adding or editing demo steps**
+
+Edit `demo_config.json`. Each step is an object with an `action` (`goto` | `click` | `fill` | `wait`), a `selector` or `value`, and a human-readable `feature_label` describing what's being shown. Steps run in order; keep the pauses between them so narration has room. The `feature_label` is what the LLM narrates, so write it as a description of the feature, not a UI instruction.
+
+**Conventions for agents working on this pipeline**
+
+- Keep all app-specific values (URL, models, executable paths) in `demo_config.json` or constants at the top of the script — never buried in logic.
+- Before running, verify dependencies are present (Playwright, FFmpeg on `PATH`, LM Studio running, Piper executable and voice model) and report missing ones with install instructions rather than failing silently.
+- Use the `--dry-run` flag (recording + logging only, no audio) to validate a walkthrough before generating narration.
+- Prefer Playwright selectors that are resilient to UI changes (roles, labels, test IDs) over brittle CSS/XPath.
+
+**Prerequisites**
+
+LM Studio running locally with the configured model pulled; Piper executable and a voice model installed; FFmpeg on `PATH`; Playwright browsers installed (`playwright install`).
+
 ## Reference
 - `IMPLEMENTATION.md` -- architecture, contracts, ordered build steps
 - `LLM_INTEGRATION.md` -- LLM layer: providers, env, client helpers, feature pattern
