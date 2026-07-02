@@ -519,3 +519,20 @@
   align-items: center;
   gap: 0.35rem;
 }
+
+.toggleLink {
+  background: none;
+  border: none;
+  color: var(--accent-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+  margin-left: 0.25rem;
+  font-family: inherit;
+  transition: color 0.2s ease;
+}
+
+.toggleLink:hover {
+  color: var(--accent-secondary);
+}

@@ -57,6 +57,8 @@ export default function Home() {
   const [session, setSession] = useState<any>(null);
   const [showAuthDropdown, setShowAuthDropdown] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -262,25 +264,44 @@ export default function Home() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginEmail) return;
+    if (!loginEmail || !loginPassword) return;
     setLoginLoading(true);
     setAuthError(null);
     try {
       const supabase = getSupabaseClient();
-      const { error: authErr } = await supabase.auth.signInWithOtp({
-        email: loginEmail,
-        options: {
-          emailRedirectTo: window.location.origin + "/api/auth/callback",
-        },
-      });
-      if (authErr) {
-        setAuthError(authErr.message);
+      if (authMode === "signin") {
+        const { error: authErr } = await supabase.auth.signInWithPassword({
+          email: loginEmail,
+          password: loginPassword,
+        });
+        if (authErr) {
+          setAuthError(authErr.message);
+        } else {
+          setShowAuthDropdown(false);
+          setLoginPassword("");
+        }
       } else {
-        setLoginSuccess(true);
+        const { data, error: authErr } = await supabase.auth.signUp({
+          email: loginEmail,
+          password: loginPassword,
+          options: {
+            emailRedirectTo: window.location.origin + "/api/auth/callback",
+          },
+        });
+        if (authErr) {
+          setAuthError(authErr.message);
+        } else {
+          if (data?.session) {
+            setShowAuthDropdown(false);
+            setLoginPassword("");
+          } else {
+            setLoginSuccess(true);
+          }
+        }
       }
     } catch (err) {
       console.error(err);
-      setAuthError("Failed to trigger login request.");
+      setAuthError("Failed to authenticate.");
     } finally {
       setLoginLoading(false);
     }
@@ -387,6 +408,8 @@ export default function Home() {
                   setShowAuthDropdown(!showAuthDropdown);
                   setLoginSuccess(false);
                   setAuthError(null);
+                  setLoginPassword("");
+                  setAuthMode("signin");
                 }}
                 className={styles.authBtn}
               >
@@ -403,11 +426,11 @@ export default function Home() {
                   boxShadow: "0 10px 40px rgba(0,0,0,0.7)"
                 }}>
                   <h3 className={styles.cardTitle} style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>
-                    🚀 Teleport Link
+                    {authMode === "signin" ? "🚀 Teleport In" : "🧑‍🚀 Register Account"}
                   </h3>
                   {loginSuccess ? (
                     <div style={{ color: "#34d399", fontSize: "0.875rem", lineHeight: "1.4" }}>
-                      📡 Magic link sent! Please check your email inbox to complete sign-in.
+                      📡 Verification link sent! Please check your email inbox to complete registration.
                     </div>
                   ) : (
                     <form onSubmit={handleLogin}>
@@ -422,6 +445,17 @@ export default function Home() {
                           required
                         />
                       </div>
+                      <div className={styles.formGroup} style={{ marginBottom: "0.75rem" }}>
+                        <input
+                          type="password"
+                          placeholder="Password"
+                          className={styles.dateInput}
+                          style={{ padding: "0.5rem", fontSize: "0.9rem" }}
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          required
+                        />
+                      </div>
                       {authError && (
                         <div className={styles.inlineError} style={{ marginBottom: "0.75rem", marginTop: 0 }}>
                           <span>⚠️</span> {authError}
@@ -433,8 +467,41 @@ export default function Home() {
                         style={{ padding: "0.5rem", fontSize: "0.9rem" }}
                         disabled={loginLoading}
                       >
-                        {loginLoading ? "Sending..." : "Send Magic Link"}
+                        {loginLoading
+                          ? (authMode === "signin" ? "Signing In..." : "Registering...")
+                          : (authMode === "signin" ? "Sign In" : "Register")}
                       </button>
+                      <div style={{ marginTop: "0.75rem", textAlign: "center", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                        {authMode === "signin" ? (
+                          <>
+                            New astronaut?
+                            <button
+                              type="button"
+                              className={styles.toggleLink}
+                              onClick={() => {
+                                setAuthMode("signup");
+                                setAuthError(null);
+                              }}
+                            >
+                              Sign Up
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            Have credentials?
+                            <button
+                              type="button"
+                              className={styles.toggleLink}
+                              onClick={() => {
+                                setAuthMode("signin");
+                                setAuthError(null);
+                              }}
+                            >
+                              Sign In
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </form>
                   )}
                 </div>
