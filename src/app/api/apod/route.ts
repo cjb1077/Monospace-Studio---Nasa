@@ -25,7 +25,7 @@ function mapCachedRowToResponse(row: any): ApodApiResponse {
     },
     ascii: row.ascii,
     style: {
-      charSet: row.char_set as "standard" | "fine" | "blocky",
+      charSet: row.char_set as "standard" | "fine" | "blocky" | "blocks",
       density: Number(row.density),
       invert: row.invert,
     },
@@ -43,7 +43,7 @@ function mapCachedRowToResponse(row: any): ApodApiResponse {
 async function performConversion(
   imageUrl: string,
   usedFallbackImage: boolean,
-  style: { charSet: "standard" | "fine" | "blocky"; density: number; invert: boolean }
+  style: { charSet: "standard" | "fine" | "blocky" | "blocks" | "custom"; density: number; invert: boolean; brightness?: number; customRamp?: string }
 ): Promise<string> {
   let imageBuffer: Buffer;
   if (usedFallbackImage) {
@@ -67,6 +67,8 @@ async function performConversion(
     charSet: style.charSet,
     density: style.density,
     invert: style.invert,
+    brightness: style.brightness ?? 0,
+    customRamp: style.customRamp,
     maxWidth: ASCII_MAX_WIDTH,
   });
 }
@@ -84,18 +86,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const charSetParam = searchParams.get("charSet");
   const densityParam = searchParams.get("density");
   const invertParam = searchParams.get("invert");
+  const brightnessParam = searchParams.get("brightness");
+  const customRampParam = searchParams.get("customRamp");
 
   // Validate overrides if present
-  let overrideStyle: { charSet?: "standard" | "fine" | "blocky"; density?: number; invert?: boolean } | undefined;
-  if (charSetParam || densityParam || invertParam) {
+  let overrideStyle: { charSet?: "standard" | "fine" | "blocky" | "blocks" | "custom"; density?: number; invert?: boolean; brightness?: number; customRamp?: string } | undefined;
+  if (charSetParam || densityParam || invertParam || brightnessParam || customRampParam) {
     overrideStyle = {};
     if (charSetParam) {
-      if (charSetParam === "standard" || charSetParam === "fine" || charSetParam === "blocky") {
+      if (charSetParam === "standard" || charSetParam === "fine" || charSetParam === "blocky" || charSetParam === "blocks" || charSetParam === "custom") {
         overrideStyle.charSet = charSetParam;
       } else {
         const errBody: ApiErrorResponse = {
           ok: false,
-          error: "Invalid charSet parameter. Must be standard, fine, or blocky.",
+          error: "Invalid charSet parameter. Must be standard, fine, blocky, blocks, or custom.",
           code: "BAD_DATE",
         };
         return NextResponse.json(errBody, { status: 400 });
@@ -116,6 +120,22 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
     if (invertParam) {
       overrideStyle.invert = invertParam === "true";
+    }
+    if (brightnessParam) {
+      const b = parseFloat(brightnessParam);
+      if (!isNaN(b) && b >= -0.5 && b <= 0.5) {
+        overrideStyle.brightness = b;
+      } else {
+        const errBody: ApiErrorResponse = {
+          ok: false,
+          error: "Invalid brightness parameter. Must be a number between -0.5 and 0.5.",
+          code: "BAD_DATE",
+        };
+        return NextResponse.json(errBody, { status: 400 });
+      }
+    }
+    if (customRampParam && customRampParam.length >= 2) {
+      overrideStyle.customRamp = customRampParam;
     }
   }
 
@@ -143,6 +163,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             charSet: overrideStyle.charSet ?? responseData.style!.charSet,
             density: overrideStyle.density ?? responseData.style!.density,
             invert: overrideStyle.invert ?? responseData.style!.invert,
+            brightness: overrideStyle.brightness ?? 0,
+            customRamp: overrideStyle.customRamp,
           };
           const overriddenAscii = await performConversion(
             responseData.source!.imageUrl,
@@ -181,6 +203,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
               charSet: overrideStyle.charSet ?? responseData.style!.charSet,
               density: overrideStyle.density ?? responseData.style!.density,
               invert: overrideStyle.invert ?? responseData.style!.invert,
+              brightness: overrideStyle.brightness ?? 0,
+              customRamp: overrideStyle.customRamp,
             };
             const overriddenAscii = await performConversion(
               responseData.source!.imageUrl,
@@ -235,6 +259,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       charSet: style.charSet,
       density: style.density,
       invert: style.invert,
+      brightness: style.brightness ?? 0,
       maxWidth: ASCII_MAX_WIDTH,
     });
 
@@ -248,6 +273,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         charSet: overrideStyle.charSet ?? style.charSet,
         density: overrideStyle.density ?? style.density,
         invert: overrideStyle.invert ?? style.invert,
+        brightness: overrideStyle.brightness ?? 0,
+        customRamp: overrideStyle.customRamp,
       };
       finalAscii = convertImageToAscii(rgbaBuffer, {
         width: info.width,
@@ -255,6 +282,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         charSet: finalStyle.charSet,
         density: finalStyle.density,
         invert: finalStyle.invert,
+        brightness: finalStyle.brightness ?? 0,
+        customRamp: finalStyle.customRamp,
         maxWidth: ASCII_MAX_WIDTH,
       });
       finalAiStyleUsed = false;

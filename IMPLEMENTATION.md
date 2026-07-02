@@ -185,7 +185,7 @@ Feature 1 -- style. System prompt instructs: return ONLY JSON, no prose.
   "reasoning": "one short sentence" }
 ```
 Validate with a schema. On parse failure, timeout, or out-of-range values -> fallback
-`{ charSet: "standard", density: 0.6, invert: false }`, set `aiStyleUsed: false`.
+`{ charSet: "standard", density: 0.6, invert: true }`, set `aiStyleUsed: false`.
 
 Feature 2 -- caption + fun fact. System prompt: return ONLY JSON.
 ```json

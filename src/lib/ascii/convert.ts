@@ -7,7 +7,7 @@
  * No network calls, no randomness. Safe to unit-test with synthetic buffers.
  */
 
-export type CharSet = "standard" | "fine" | "blocky";
+export type CharSet = "standard" | "fine" | "blocky" | "blocks" | "custom";
 
 export interface ConvertOptions {
   /** Raw pixel width of the input buffer */
@@ -26,19 +26,28 @@ export interface ConvertOptions {
   invert: boolean;
   /** Maximum output column count. Input is downscaled to fit. */
   maxWidth: number;
+  /**
+   * Luminance shift applied after the density curve. Range: -0.5 (darken) to +0.5 (brighten).
+   * Default: 0 (no shift).
+   */
+  brightness?: number;
+  /** Custom character ramp, lightest→darkest. Requires >= 2 characters. Used when charSet === "custom". */
+  customRamp?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Character ramps (index 0 = lightest/space, last index = darkest)
 // ---------------------------------------------------------------------------
 
-const RAMPS: Record<CharSet, string> = {
+const RAMPS: Record<Exclude<CharSet, "custom">, string> = {
   // 10 characters
   standard: " .:-=+*#%@",
   // 18 characters — fine gradients
   fine:     " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
   // 7 characters — high-contrast blocky
   blocky:   " .:oO0@",
+  // 5 characters — Unicode block shading (light → dense)
+  blocks:   " ░▒▓█",
 };
 
 // ---------------------------------------------------------------------------
@@ -60,9 +69,11 @@ export function convertImageToAscii(
   buffer: Buffer,
   options: ConvertOptions
 ): string {
-  const { width, height, charSet, density, invert, maxWidth } = options;
+  const { width, height, charSet, density, invert, maxWidth, brightness = 0, customRamp } = options;
 
-  const ramp = RAMPS[charSet];
+  const ramp = (charSet === "custom" && customRamp && customRamp.length >= 2)
+    ? customRamp
+    : (RAMPS[charSet as Exclude<CharSet, "custom">] ?? RAMPS.standard);
 
   // --- Determine output dimensions -----------------------------------------
   // Downscale to fit maxWidth; never upscale.
@@ -119,7 +130,7 @@ export function convertImageToAscii(
       // density 0.4 → exponent 0.4 → expands toward white (lighter chars)
       // density 0.9 → exponent 0.9 → pushes mid-tones toward dark (darker chars)
       lum = Math.pow(lum, density);
-      lum = Math.max(0, Math.min(1, lum));
+      lum = Math.max(0, Math.min(1, lum + brightness));
 
       // Map to ramp index (lum=1 → index 0, lum=0 → last index)
       // Light pixels → low index (space); Dark pixels → high index (dense char)

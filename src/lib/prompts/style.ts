@@ -15,9 +15,9 @@ Your job is to recommend ASCII art settings suited to the subject of a NASA Astr
 You must choose the character set, density, and invert settings based on the image's subject matter.
 
 Constraints:
-- "charSet": choose exactly one of: "standard" (for normal details), "fine" (for smooth gradients, starry fields, nebulae), or "blocky" (for high-contrast, structural shapes, craters).
+- "charSet": choose exactly one of: "standard" (for normal details), "fine" (for smooth gradients, starry fields, nebulae), "blocky" (for high-contrast, structural shapes, craters), or "blocks" (Unicode ░▒▓█ shading, great for dramatic cosmic imagery with bold tonal regions).
 - "density": choose a decimal between 0.4 and 0.9. Lower density (e.g. 0.4-0.5) works best for bright, detailed images. Higher density (e.g. 0.7-0.9) works best for dark, sparse images like space backgrounds.
-- "invert": set to true if the subject would render better inverted (dark characters on light background), otherwise false.
+- "invert": the art renders on a DARK terminal background. Set to true (recommended default) so bright image regions map to dense visible characters and dark regions map to spaces. Only set to false for images where dark/empty regions should dominate (e.g. a predominantly black deep-space field where the few bright points should appear as isolated dense glyphs would still use true).
 - "reasoning": a single short sentence explaining why you selected these settings.`;
 
   const userPrompt = `Image Title: ${title}
@@ -25,7 +25,7 @@ Image Explanation: ${explanation}
 
 Provide your recommendations in this JSON schema:
 {
-  "charSet": "standard" | "fine" | "blocky",
+  "charSet": "standard" | "fine" | "blocky" | "blocks",
   "density": number,
   "invert": boolean,
   "reasoning": "string"

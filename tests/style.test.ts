@@ -43,7 +43,7 @@ describe("recommendStyle", () => {
     });
 
     const result = await recommendStyle("Galaxy", "A beautiful spiral galaxy.");
-    expect(result.style).toEqual({ charSet: "standard", density: 0.6, invert: false });
+    expect(result.style).toEqual({ charSet: "standard", density: 0.6, invert: true });
     expect(result.aiStyleUsed).toBe(false);
     expect(chatModule.createJsonCompletion).toHaveBeenCalledTimes(2);
   });

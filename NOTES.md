@@ -338,6 +338,26 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 
 ---
 
+## 25. Stylization Matrix Upgrades — Blocks, Custom Ramp, Brightness (2026-07-02)
+* **Status:** Complete.
+* **Features Added:**
+  * **Unicode Blocks charSet (`"blocks"`):** Adds ramp `" ░▒▓█"` (5 Unicode block-shading chars) to `RAMPS` in `convert.ts`. Added to `styleSchema` so the AI can recommend it. Added to the Glyph Set dropdown in the UI. Prompt description updated to explain the new option.
+  * **Custom Glyph Ramp (`"custom"` charSet):** Users can type any character sequence (lightest→darkest) into a text input. Requires ≥ 2 characters before a fetch fires. Ramp is URL-encoded and passed as `&customRamp=...`. Converter falls back to `standard` if `customRamp` is missing or < 2 chars. Shows live character count and preview in the UI.
+  * **Brightness parameter:** `-0.5` (darken) to `+0.5` (brighten), step `0.05`, default `0`. Applied after the density curve: `lum = clamp(lum + brightness, 0, 1)`. Passed via `&brightness=...` query param; validated server-side with a 400 error on out-of-range values. Slider shows `+0.00` / `-0.15` style value.
+* **Files Changed:** `src/lib/types.ts`, `src/lib/ascii/convert.ts`, `src/lib/style/index.ts`, `src/lib/prompts/style.ts`, `src/app/api/apod/route.ts`, `src/app/page.tsx`, `tests/style.test.ts`.
+* **Tests:** `tests/style.test.ts` fallback assertion updated to `invert: true` (from the previous default fix). All 57 tests pass ✅.
+
+---
+
+## 24. Luminance Ramp Invert Default Fix (2026-07-01)
+* **Status:** Complete.
+* **Root Cause:** `DEFAULT_STYLE.invert` was `false`, meaning white pixels (lum=1) mapped to index 0 of the ramp (space character). On the app's dark terminal background, spaces are invisible, so bright image regions appeared dark and dark regions appeared bright — an inverted perceptual result.
+* **Fix:** Changed `DEFAULT_STYLE.invert` to `true` in `src/lib/style/index.ts` (both repos). With `invert: true`, white pixels → dense chars (visible/bright on dark bg) and black pixels → space (invisible on dark bg), matching perceptual expectation.
+* **Tests:** No test changes needed — all unit tests in `tests/ascii.test.ts` explicitly supply their own `invert` value and do not depend on `DEFAULT_STYLE`.
+* **Docs:** Updated fallback spec in `IMPLEMENTATION.md` (section 6, Feature 1) from `invert: false` to `invert: true` in both repos.
+
+---
+
 ## 23. UI Polish & Layout Fixes (2026-07-02)
 * **Status:** Complete.
 * **Decisions & Implementation Details:**

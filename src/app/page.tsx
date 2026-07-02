@@ -13,9 +13,11 @@ interface ApodSource {
 }
 
 interface AsciiStyle {
-  charSet: "standard" | "fine" | "blocky";
+  charSet: "standard" | "fine" | "blocky" | "blocks" | "custom";
   density: number;
   invert: boolean;
+  brightness: number;
+  customRamp?: string;
 }
 
 interface ApodApiResponse {
@@ -193,7 +195,10 @@ export default function Home() {
     try {
       let url = `/api/apod?date=${targetDate}`;
       if (overrides) {
-        url += `&charSet=${overrides.charSet}&density=${overrides.density}&invert=${overrides.invert}`;
+        url += `&charSet=${overrides.charSet}&density=${overrides.density}&invert=${overrides.invert}&brightness=${overrides.brightness ?? 0}`;
+        if (overrides.charSet === "custom" && overrides.customRamp) {
+          url += `&customRamp=${encodeURIComponent(overrides.customRamp)}`;
+        }
       }
       const response = await fetch(url, { signal: abortController.signal });
       const data = (await response.json()) as ApodApiResponse;
@@ -201,7 +206,7 @@ export default function Home() {
       if (response.ok && data.ok) {
         setApodData(data);
         if (!overrides && data.style) {
-          setStyleOverride(data.style);
+          setStyleOverride({ ...data.style, brightness: data.style.brightness ?? 0 });
         }
       } else {
         setError(data.error || "An error occurred while fetching cosmic data.");
@@ -244,6 +249,9 @@ export default function Home() {
       ...updates,
     };
     setStyleOverride(newOverrides);
+    if (newOverrides.charSet === "custom" && (!newOverrides.customRamp || newOverrides.customRamp.length < 2)) {
+      return;
+    }
     fetchApodData(activeDate, newOverrides);
   };
 
@@ -670,11 +678,39 @@ export default function Home() {
                   }
                   disabled={loading}
                 >
-                  <option value="standard">Standard (.-=+*#%@)</option>
+                  <option value="standard">Standard ( .:-=+*#%@)</option>
                   <option value="fine">Fine (Smooth Gradients)</option>
                   <option value="blocky">Blocky (High Contrast)</option>
+                  <option value="blocks">Blocks (░▒▓█ Unicode)</option>
+                  <option value="custom">Custom (Define Your Own)</option>
                 </select>
               </div>
+
+              {styleOverride.charSet === "custom" && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="custom-ramp-input">
+                    Custom Glyph Ramp <span style={{ color: "var(--text-secondary)", fontWeight: 400 }}>(light → dark)</span>
+                  </label>
+                  <input
+                    id="custom-ramp-input"
+                    type="text"
+                    className={styles.dateInput}
+                    placeholder="e.g.  .:-=+*#%@"
+                    value={styleOverride.customRamp ?? ""}
+                    onChange={(e) => handleStyleChange({ customRamp: e.target.value })}
+                    disabled={loading}
+                    style={{ fontFamily: "monospace", letterSpacing: "0.05em" }}
+                  />
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "0.3rem" }}>
+                    {(styleOverride.customRamp?.length ?? 0) < 2
+                      ? "Enter at least 2 characters to render."
+                      : `${styleOverride.customRamp!.length} glyphs — preview: `}
+                    {(styleOverride.customRamp?.length ?? 0) >= 2 && (
+                      <code style={{ fontFamily: "monospace", color: "var(--accent-primary)" }}>{styleOverride.customRamp}</code>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor="density-slider">
@@ -693,6 +729,26 @@ export default function Home() {
                     disabled={loading}
                   />
                   <span className={styles.sliderValue}>{styleOverride.density.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="brightness-slider">
+                  Brightness
+                </label>
+                <div className={styles.sliderContainer}>
+                  <input
+                    id="brightness-slider"
+                    type="range"
+                    min="-0.5"
+                    max="0.5"
+                    step="0.05"
+                    className={styles.slider}
+                    value={styleOverride.brightness ?? 0}
+                    onChange={(e) => handleStyleChange({ brightness: parseFloat(e.target.value) })}
+                    disabled={loading}
+                  />
+                  <span className={styles.sliderValue}>{((styleOverride.brightness ?? 0) >= 0 ? "+" : "") + (styleOverride.brightness ?? 0).toFixed(2)}</span>
                 </div>
               </div>
 

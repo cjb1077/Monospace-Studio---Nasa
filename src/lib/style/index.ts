@@ -5,7 +5,7 @@ import { AsciiStyle } from "../types";
 
 // Schema to validate LLM output structure and value bounds
 const styleSchema = z.object({
-  charSet: z.enum(["standard", "fine", "blocky"]),
+  charSet: z.enum(["standard", "fine", "blocky", "blocks"]),
   density: z.number().min(0.4).max(0.9),
   invert: z.boolean(),
   reasoning: z.string(),
@@ -14,7 +14,7 @@ const styleSchema = z.object({
 const DEFAULT_STYLE: AsciiStyle = {
   charSet: "standard",
   density: 0.6,
-  invert: false,
+  invert: true,
 };
 
 /**

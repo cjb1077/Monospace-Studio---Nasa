@@ -19,9 +19,11 @@ export interface ApodSource {
 }
 
 export interface AsciiStyle {
-  charSet: "standard" | "fine" | "blocky";
+  charSet: "standard" | "fine" | "blocky" | "blocks" | "custom";
   density: number; // 0.4 - 0.9
   invert: boolean;
+  brightness?: number; // -0.5 to +0.5, default 0
+  customRamp?: string; // lightest→darkest, used when charSet === "custom", requires >= 2 chars
 }
 
 export interface LlmStyleResponse extends AsciiStyle {
