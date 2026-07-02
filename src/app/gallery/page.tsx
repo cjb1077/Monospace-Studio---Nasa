@@ -187,21 +187,7 @@ export default function Gallery() {
       {/* Header / Navbar */}
       <header className={styles.header}>
         <div className={styles.brand}>
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            className={styles.planetIcon}
-          >
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M18.816 13.58c2.292 2.42 3.692 6.4 1.184 8.42c-2.508 2.02 -7.502 -1.48 -11.144 -7.82c-3.642 -6.34 -4.846 -11.96 -2.338 -13.98c2.508 -2.02 7.502 1.48 11.144 7.82" />
-            <path d="M15.474 11.458c-1.397 -2.433 -3.407 -4.137 -5.696 -3.882" />
-          </svg>
-          <span>Monospace Studio</span>
+          <span className={styles.terminalIcon}>🪐</span> Monospace Studio
         </div>
         <nav className={styles.nav}>
           <a href="/" className={styles.navLink}>
