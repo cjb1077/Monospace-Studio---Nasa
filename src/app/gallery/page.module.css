@@ -42,6 +42,15 @@
   text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
 }
 
+.planetIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent-primary);
+  filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.5));
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .nav {
   display: flex;
   align-items: center;
@@ -298,21 +307,37 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   height: 160px;
-  overflow: hidden;
+  overflow: auto;
   padding: 0.75rem;
-  display: flex;
+  display: block;
   position: relative;
+}
+
+.previewContainer::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.previewContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+.previewContainer::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+.previewContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
 }
 
 .preArt {
   font-family: var(--font-mono);
-  font-size: 4.5px;
+  font-size: 4px;
   line-height: 0.65;
   letter-spacing: 0.05em;
   color: var(--accent-primary);
-  margin: auto;
   white-space: pre;
   user-select: none;
+  width: max-content;
+  margin: 0 auto;
 }
 
 .captionText {

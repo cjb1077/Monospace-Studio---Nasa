@@ -357,7 +357,21 @@ export default function Home() {
       <div className={styles.container}>
         <header className={styles.header}>
           <div className={styles.brand}>
-            <span className={styles.terminalIcon}>&gt;_</span> Monospace Studio
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className={styles.planetIcon}
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M18.816 13.58c2.292 2.42 3.692 6.4 1.184 8.42c-2.508 2.02 -7.502 -1.48 -11.144 -7.82c-3.642 -6.34 -4.846 -11.96 -2.338 -13.98c2.508 -2.02 7.502 1.48 11.144 7.82" />
+              <path d="M15.474 11.458c-1.397 -2.433 -3.407 -4.137 -5.696 -3.882" />
+            </svg>
+            <span>Monospace Studio</span>
           </div>
           <nav className={styles.nav}>
             <a href="#" className={`${styles.navLink} ${styles.navLinkActive}`}>🔭 Studio</a>
@@ -384,7 +398,21 @@ export default function Home() {
       {/* Header / Navbar */}
       <header className={styles.header}>
         <div className={styles.brand}>
-          <span className={styles.terminalIcon}>&gt;_</span> Monospace Studio
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className={styles.planetIcon}
+          >
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M18.816 13.58c2.292 2.42 3.692 6.4 1.184 8.42c-2.508 2.02 -7.502 -1.48 -11.144 -7.82c-3.642 -6.34 -4.846 -11.96 -2.338 -13.98c2.508 -2.02 7.502 1.48 11.144 7.82" />
+            <path d="M15.474 11.458c-1.397 -2.433 -3.407 -4.137 -5.696 -3.882" />
+          </svg>
+          <span>Monospace Studio</span>
         </div>
         <nav className={styles.nav}>
           <a href="#" className={`${styles.navLink} ${styles.navLinkActive}`}>
@@ -597,7 +625,7 @@ export default function Home() {
               {/* Skeleton Source Telemetry */}
               <div className={`${styles.glassCard} ${styles.skeletonPulse}`}>
                 <h2 className={styles.cardTitle}>
-                  <span className={styles.cardTitleIcon}>☄️</span> Source Telemetry
+                  <span className={styles.cardTitleIcon}>☄️</span> APOD for {inputDate || "Loading..."}
                 </h2>
                 <div className={`${styles.skeletonThumbnail} ${styles.skeletonPulse}`} />
                 <div className={`${styles.skeletonTitle} ${styles.skeletonPulse}`} />
@@ -622,7 +650,7 @@ export default function Home() {
           {apodData?.source && !error && (!loading || apodData) && (
             <div className={styles.glassCard} style={{ opacity: loading ? 0.6 : 1, transition: "opacity 0.2s" }}>
               <h2 className={styles.cardTitle}>
-                <span className={styles.cardTitleIcon}>☄️</span> Source Telemetry
+                <span className={styles.cardTitleIcon}>☄️</span> APOD for {apodData.source.date}
               </h2>
               <div className={styles.thumbnailContainer}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -637,7 +665,6 @@ export default function Home() {
                     src={apodData.source.imageUrl}
                     alt={apodData.source.title}
                     className={styles.thumbnail}
-                    style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", width: "auto", height: "auto" }}
                   />
                 </a>
               </div>
