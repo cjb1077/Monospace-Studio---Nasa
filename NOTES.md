@@ -335,3 +335,17 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 * **Verification Results:**
   - `npx vitest` → 57 tests passed successfully (all suites) ✅
   - `npm run build` → Next.js compiled successfully with zero TypeScript or Turbopack compiler errors ✅
+
+---
+
+## 23. UI Polish & Layout Fixes (2026-07-02)
+* **Status:** Complete.
+* **Decisions & Implementation Details:**
+  - Brand Logo: Swapped the text `>_` logo in the top-left with a custom tilted planet SVG in both Studio and Gallery headers.
+  - Gallery Previews: Set `.previewContainer` to `overflow: auto` with thin, styled scrollbars, and changed `.preArt` to `width: max-content; margin: 0 auto` to prevent clipping and enable centering while remaining scrollable.
+  - Dynamic Thumbnail: Configured `.thumbnailContainer` height to `auto`, with a min-height of 180px and max-height of 320px. Set `.thumbnail` to `width: 100%; height: auto` to display portrait APOD photos taller and clearer.
+  - Card Title: Updated title text from "Source Telemetry" to dynamic "APOD for YYYY-MM-DD" in both loading skeleton and active state.
+  - Sibling Repository: Copied and synced all CSS and page updates identically to `monospace_studio_nasa` and committed.
+* **Verification Results:**
+  - `npm test` → 57 tests passed successfully (no regressions) ✅
+  - `npm run build` in both repositories → Compiled successfully with zero errors ✅
