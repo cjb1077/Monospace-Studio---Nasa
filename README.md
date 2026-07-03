@@ -304,4 +304,4 @@ A Postman collection is provided in the repository to verify all HTTP endpoint o
 
 ## 8. Demo Walkthrough
 
-![Monospace Studio Automation Recording](./public/walkthrough.webp)
+AI Demo: https://youtu.be/NR54mnEjK8Y
