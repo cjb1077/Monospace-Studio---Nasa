@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import styles from "./page.module.css";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { doubleAsciiWidth } from "@/lib/ascii/convert";
 
 interface Render {
   id: string;
@@ -96,6 +97,22 @@ export default function Gallery() {
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "mine" | "public">("all");
+
+  // Modal Details states
+  const [selectedRender, setSelectedRender] = useState<Render | null>(null);
+  const [modalZoomLevel, setModalZoomLevel] = useState(1.0);
+  const [modalFullscreen, setModalFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedRender(null);
+        setModalFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -222,6 +239,39 @@ export default function Gallery() {
       }
     } catch (err) {
       console.error("Sign out error:", err);
+    }
+  };
+
+  const handleDownloadTxt = (render: Render) => {
+    try {
+      // 1. Process character doubling to fix the aspect ratio stretch in text editors
+      const formattedAscii = doubleAsciiWidth(render.ascii)
+        .split("\n")
+        .join("\r\n"); // Windows CRLF newlines
+
+      // 2. Generate text file Blob
+      const blob = new Blob([formattedAscii], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      // 3. Create downloader element
+      const link = document.createElement("a");
+      link.href = url;
+      
+      // Clean title for safe filename
+      const safeTitle = render.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+      link.download = `${safeTitle}_ascii.txt`;
+      
+      // 4. Trigger download and cleanup
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download text file:", err);
+      alert("Error occurred generating download file.");
     }
   };
 
@@ -457,7 +507,15 @@ export default function Gallery() {
               const isOwner = session && render.userId === session.user.id;
 
               return (
-                <div key={render.id} className={styles.glassCard}>
+                <div
+                  key={render.id}
+                  className={`${styles.glassCard} ${styles.gridCardClickable}`}
+                  onClick={() => {
+                    setSelectedRender(render);
+                    setModalZoomLevel(1.0);
+                    setModalFullscreen(false);
+                  }}
+                >
                   <div className={styles.cardHeader}>
                     <h2 className={styles.cardTitle} title={render.title}>
                       {render.title}
@@ -494,7 +552,10 @@ export default function Gallery() {
                     {isOwner && (
                       <button
                         className={styles.deleteBtn}
-                        onClick={() => handleDelete(render.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(render.id);
+                        }}
                       >
                         Scrub Log
                       </button>
@@ -515,6 +576,116 @@ export default function Gallery() {
               {toast.type === "success" ? "🛸" : "⚠️"}
             </span>
             <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Details Popup Modal */}
+      {selectedRender && (
+        <div
+          className={`${styles.modalOverlay} ${modalFullscreen ? styles.fullscreenView : ""}`}
+          onClick={() => {
+            setSelectedRender(null);
+            setModalFullscreen(false);
+          }}
+        >
+          <div
+            className={styles.modalContainer}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle} title={selectedRender.title}>
+                🪐 Details: {selectedRender.title}
+              </h2>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                  Resolved: {selectedRender.sourceDate}
+                </span>
+                <button
+                  className={styles.modalCloseBtn}
+                  onClick={() => {
+                    setSelectedRender(null);
+                    setModalFullscreen(false);
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className={styles.modalBody}>
+              {/* Viewport */}
+              <div className={styles.modalViewport}>
+                {/* Viewport Controls */}
+                <div className={styles.modalControls}>
+                  <button
+                    className={styles.modalBtn}
+                    onClick={() => setModalZoomLevel((z) => Math.max(0.2, z - 0.2))}
+                    title="Zoom Out"
+                  >
+                    -
+                  </button>
+                  <span
+                    style={{
+                      color: "var(--text-secondary)",
+                      alignSelf: "center",
+                      fontSize: "0.8rem",
+                      fontFamily: "monospace",
+                      minWidth: "35px",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Math.round(modalZoomLevel * 100)}%
+                  </span>
+                  <button
+                    className={styles.modalBtn}
+                    onClick={() => setModalZoomLevel((z) => Math.min(3.0, z + 0.2))}
+                    title="Zoom In"
+                  >
+                    +
+                  </button>
+                  <button
+                    className={styles.modalBtn}
+                    onClick={() => handleDownloadTxt(selectedRender)}
+                    title="Download ASCII Art as .txt file"
+                  >
+                    📥 Download
+                  </button>
+                  <button
+                    className={styles.modalBtn}
+                    onClick={() => setModalFullscreen(!modalFullscreen)}
+                    title={modalFullscreen ? "Exit Fullscreen" : "Fullscreen Zoom"}
+                  >
+                    {modalFullscreen ? "✕ Exit" : "🔍 Fullscreen"}
+                  </button>
+                </div>
+
+                <pre
+                  className={styles.modalPre}
+                  style={{ fontSize: `${5 * modalZoomLevel}px` }}
+                >
+                  {selectedRender.ascii}
+                </pre>
+              </div>
+
+              {/* Sidebar */}
+              <div className={styles.modalSidebar}>
+                {selectedRender.caption && (
+                  <div>
+                    <h3 className={styles.factHeader}>AI Themed Caption</h3>
+                    <p className={styles.captionText}>"{selectedRender.caption}"</p>
+                  </div>
+                )}
+                {selectedRender.funFact && (
+                  <div className={styles.factBox} style={{ marginTop: 0 }}>
+                    <div className={styles.factHeader}>Scientific Fun Fact</div>
+                    <p className={styles.factText}>{selectedRender.funFact}</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

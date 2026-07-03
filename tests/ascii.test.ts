@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { convertImageToAscii } from "../src/lib/ascii/convert";
+import { convertImageToAscii, doubleAsciiWidth } from "../src/lib/ascii/convert";
 
 // ---------------------------------------------------------------------------
 // Helpers to build synthetic raw RGBA buffers
@@ -336,3 +336,12 @@ describe("convertImageToAscii – output shape", () => {
     expect(lines.length).toBe(11);
   });
 });
+
+describe("doubleAsciiWidth", () => {
+  it("doubles each character horizontally on every line", () => {
+    const input = "abc\n123";
+    const expected = "aabbcc\n112233";
+    expect(doubleAsciiWidth(input)).toBe(expected);
+  });
+});
+

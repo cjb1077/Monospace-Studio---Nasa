@@ -151,3 +151,11 @@ export function convertImageToAscii(
 
   return lines.join("\n");
 }
+
+export function doubleAsciiWidth(ascii: string): string {
+  return ascii
+    .split("\n")
+    .map((line) => Array.from(line).map((char) => char + char).join(""))
+    .join("\n");
+}
+

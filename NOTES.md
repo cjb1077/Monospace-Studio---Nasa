@@ -338,26 +338,6 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 
 ---
 
-## 25. Stylization Matrix Upgrades — Blocks, Custom Ramp, Brightness (2026-07-02)
-* **Status:** Complete.
-* **Features Added:**
-  * **Unicode Blocks charSet (`"blocks"`):** Adds ramp `" ░▒▓█"` (5 Unicode block-shading chars) to `RAMPS` in `convert.ts`. Added to `styleSchema` so the AI can recommend it. Added to the Glyph Set dropdown in the UI. Prompt description updated to explain the new option.
-  * **Custom Glyph Ramp (`"custom"` charSet):** Users can type any character sequence (lightest→darkest) into a text input. Requires ≥ 2 characters before a fetch fires. Ramp is URL-encoded and passed as `&customRamp=...`. Converter falls back to `standard` if `customRamp` is missing or < 2 chars. Shows live character count and preview in the UI.
-  * **Brightness parameter:** `-0.5` (darken) to `+0.5` (brighten), step `0.05`, default `0`. Applied after the density curve: `lum = clamp(lum + brightness, 0, 1)`. Passed via `&brightness=...` query param; validated server-side with a 400 error on out-of-range values. Slider shows `+0.00` / `-0.15` style value.
-* **Files Changed:** `src/lib/types.ts`, `src/lib/ascii/convert.ts`, `src/lib/style/index.ts`, `src/lib/prompts/style.ts`, `src/app/api/apod/route.ts`, `src/app/page.tsx`, `tests/style.test.ts`.
-* **Tests:** `tests/style.test.ts` fallback assertion updated to `invert: true` (from the previous default fix). All 57 tests pass ✅.
-
----
-
-## 24. Luminance Ramp Invert Default Fix (2026-07-01)
-* **Status:** Complete.
-* **Root Cause:** `DEFAULT_STYLE.invert` was `false`, meaning white pixels (lum=1) mapped to index 0 of the ramp (space character). On the app's dark terminal background, spaces are invisible, so bright image regions appeared dark and dark regions appeared bright — an inverted perceptual result.
-* **Fix:** Changed `DEFAULT_STYLE.invert` to `true` in `src/lib/style/index.ts` (both repos). With `invert: true`, white pixels → dense chars (visible/bright on dark bg) and black pixels → space (invisible on dark bg), matching perceptual expectation.
-* **Tests:** No test changes needed — all unit tests in `tests/ascii.test.ts` explicitly supply their own `invert` value and do not depend on `DEFAULT_STYLE`.
-* **Docs:** Updated fallback spec in `IMPLEMENTATION.md` (section 6, Feature 1) from `invert: false` to `invert: true` in both repos.
-
----
-
 ## 23. UI Polish & Layout Fixes (2026-07-02)
 * **Status:** Complete.
 * **Decisions & Implementation Details:**
@@ -369,3 +349,47 @@ If downstream services fail or return malformed/timed-out responses, we apply th
 * **Verification Results:**
   - `npm test` → 57 tests passed successfully (no regressions) ✅
   - `npm run build` in both repositories → Compiled successfully with zero errors ✅
+
+---
+
+## 26. Stylization Matrix Upgrades — Blocks, Custom Ramp, Brightness (2026-07-02)
+* **Status:** Complete.
+* **Features Added:**
+  * **Unicode Blocks charSet (`"blocks"`):** Adds ramp `" ░▒▓█"` (5 Unicode block-shading chars) to `RAMPS` in `convert.ts`. Added to `styleSchema` so the AI can recommend it. Added to the Glyph Set dropdown in the UI. Prompt description updated to explain the new option.
+  * **Custom Glyph Ramp (`"custom"` charSet):** Users can type any character sequence (lightest→darkest) into a text input. Requires ≥ 2 characters before a fetch fires. Ramp is URL-encoded and passed as `&customRamp=...`. Converter falls back to `standard` if `customRamp` is missing or < 2 chars. Shows live character count and preview in the UI.
+  * **Brightness parameter:** `-0.5` (darken) to `+0.5` (brighten), step `0.05`, default `0`. Applied after the density curve: `lum = clamp(lum + brightness, 0, 1)`. Passed via `&brightness=...` query param; validated server-side with a 400 error on out-of-range values. Slider shows `+0.00` / `-0.15` style value.
+* **Files Changed:** `src/lib/types.ts`, `src/lib/ascii/convert.ts`, `src/lib/style/index.ts`, `src/lib/prompts/style.ts`, `src/app/api/apod/route.ts`, `src/app/page.tsx`, `tests/style.test.ts`.
+* **Tests:** `tests/style.test.ts` fallback assertion updated to `invert: true` (from the previous default fix). All 57 tests pass ✅.
+
+---
+
+## 25. Luminance Ramp Invert Default Fix (2026-07-01)
+* **Status:** Complete.
+* **Root Cause:** `DEFAULT_STYLE.invert` was `false`, meaning white pixels (lum=1) mapped to index 0 of the ramp (space character). On the app's dark terminal background, spaces are invisible, so bright image regions appeared dark and dark regions appeared bright — an inverted perceptual result.
+* **Fix:** Changed `DEFAULT_STYLE.invert` to `true` in `src/lib/style/index.ts` (both repos). With `invert: true`, white pixels → dense chars (visible/bright on dark bg) and black pixels → space (invisible on dark bg), matching perceptual expectation.
+* **Tests:** No test changes needed — all unit tests in `tests/ascii.test.ts` explicitly supply their own `invert` value and do not depend on `DEFAULT_STYLE`.
+* **Docs:** Updated fallback spec in `IMPLEMENTATION.md` (section 6, Feature 1) from `invert: false` to `invert: true` in both repos.
+
+---
+
+## 24. Gallery Card — Full ASCII Art Display (2026-07-02)
+* **Status:** Complete.
+* **Decisions & Implementation Details:**
+  - **Root cause:** The save logic (handleSaveRender) was already correct — it sends the full untruncated podData.ascii string to POST /api/renders. No data is lost at save time.
+  - **Display bug:** The two repos had diverged during earlier debugging. monospace_studio_nasa/src/app/gallery/page.tsx was using a plain <pre> with overflow: hidden, causing the ASCII art to be visually clipped to only the top-left portion.
+  - **Fix:** Copied the ScaledPreview component from week3-cjb1077 into monospace_studio_nasa. The component uses ResizeObserver + CSS 	ransform: scale(ratio) where ratio = cardWidth / naturalPreWidth, then sets container height inline to 
+aturalH * ratio + padding. Renders the entire ASCII image, scaled to fit, no scrollbars or cropping.
+  - **Verification:** Both gallery/page.tsx files are now byte-for-byte identical (18,470 bytes, Compare-Object returns zero differences). No CSS, API, or database changes needed.
+
+---
+
+## 26. Gallery Details Popup Modal & Text Download (2026-07-03)
+* **Status:** Complete.
+* **Objective:** Allow clicking on cards in the cosmic render gallery to show a popup displaying the full title, ASCII art, and AI fact, with zoom options, fullscreen mode, and a `.txt` download button that corrects vertical aspect ratio stretching.
+* **Decisions & Implementation Details:**
+  - **Click Trigger:** Wrapped gallery cards on `/gallery` with an interactive handler to set the selected render and open the modal, while using `e.stopPropagation()` on the Scrub Log button.
+  - **Escape & Overlay Dismissal:** Registered a keydown event listener for Escape, and mapped the overlay backdrop click to close the modal.
+  - **Toolbar Controls:** Added zoom-out, zoom-in, aspect-ratio corrected download, and fullscreen toggle (which hides header/sidebar for a pure focus on the artwork).
+  - **Download Formatting:** Implemented a pure utility `doubleAsciiWidth` in `src/lib/ascii/convert.ts` (with unit tests in `tests/ascii.test.ts`) that doubles characters horizontally to correct the vertical stretching in 2:1 character cell text editors.
+  - **Verification:** Built and verified Next.js package, ran all 58 Vitest tests successfully, and manually checked modal layout.
+
