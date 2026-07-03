@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import styles from "./page.module.css";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { doubleAsciiWidth } from "@/lib/ascii/convert";
+
 
 interface ApodSource {
   title: string;
@@ -71,7 +73,6 @@ export default function Home() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const [copied, setCopied] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(0.6);
   const [viewportHover, setViewportHover] = useState(false);
@@ -269,16 +270,41 @@ export default function Home() {
     }
   };
 
-  const handleCopy = async () => {
+  const handleDownloadTxt = () => {
     if (!apodData?.ascii) return;
     try {
-      await navigator.clipboard.writeText(apodData.ascii);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // 1. Process character doubling to fix the aspect ratio stretch in text editors
+      const formattedAscii = doubleAsciiWidth(apodData.ascii)
+        .split("\n")
+        .join("\r\n"); // Windows CRLF newlines
+
+      // 2. Generate text file Blob
+      const blob = new Blob([formattedAscii], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      // 3. Create downloader element
+      const link = document.createElement("a");
+      link.href = url;
+      
+      // Clean title for safe filename
+      const title = apodData.source?.title || "apod";
+      const safeTitle = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+      link.download = `${safeTitle}_ascii.txt`;
+      
+      // 4. Trigger download and cleanup
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Failed to copy art:", err);
+      console.error("Failed to download text file:", err);
+      alert("Error occurred generating download file.");
     }
   };
+
 
   const handleZoom = () => {
     setZoomLevel(0.6);
@@ -942,11 +968,11 @@ export default function Home() {
                   </button>
                   <button
                     className={styles.floatingBtn}
-                    onClick={handleCopy}
-                    title="Copy Raw ASCII to Clipboard"
+                    onClick={handleDownloadTxt}
+                    title="Download ASCII Art as .txt file"
                     disabled={loading}
                   >
-                    {copied ? "✅" : "📋"}
+                    📥
                   </button>
                   <button
                     className={styles.floatingBtn}

@@ -393,3 +393,18 @@ aturalH * ratio + padding. Renders the entire ASCII image, scaled to fit, no scr
   - **Download Formatting:** Implemented a pure utility `doubleAsciiWidth` in `src/lib/ascii/convert.ts` (with unit tests in `tests/ascii.test.ts`) that doubles characters horizontally to correct the vertical stretching in 2:1 character cell text editors.
   - **Verification:** Built and verified Next.js package, ran all 58 Vitest tests successfully, and manually checked modal layout.
 
+---
+
+## 27. Studio ASCII Art Display - Download Button Update (2026-07-03)
+* **Status:** Complete.
+* **Objective:** Replace the "Copy Raw ASCII to Clipboard" button in the Studio page ASCII art display window with a "Download ASCII Art" button. Leverage the aspect-ratio corrected text download functionality (`doubleAsciiWidth` and CRLF conversion) implemented for the gallery modal.
+* **Decisions & Implementation Details:**
+  - Removed the unused `copied` state variable and clipboard-based `handleCopy` helper from `src/app/page.tsx`.
+  - Imported `doubleAsciiWidth` from `@/lib/ascii/convert` in `src/app/page.tsx`.
+  - Implemented `handleDownloadTxt` in `src/app/page.tsx` using the identical character-doubling and CRLF carriage return logic found in `src/app/gallery/page.tsx`'s download helper.
+  - Swapped the clipboard button inside the viewport's `.floatingControls` container with a download button containing the `📥` icon, updated the `title` attribute to `"Download ASCII Art as .txt file"`, and mapped the click handler to `handleDownloadTxt`.
+* **Verification Results:**
+  - `npm run build` → compiled cleanly with zero TypeScript compiler or Turbopack bundling errors.
+  - `npm test -- --run` → all 58 Vitest tests passed successfully.
+
+
