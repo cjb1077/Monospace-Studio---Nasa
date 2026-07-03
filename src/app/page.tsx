@@ -73,6 +73,7 @@ export default function Home() {
 
   const [copied, setCopied] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(0.6);
   const [viewportHover, setViewportHover] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -280,6 +281,7 @@ export default function Home() {
   };
 
   const handleZoom = () => {
+    setZoomLevel(0.6);
     setZoomed(!zoomed);
   };
 
@@ -924,6 +926,22 @@ export default function Home() {
                 <div className={styles.floatingControls}>
                   <button
                     className={styles.floatingBtn}
+                    onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.2))}
+                    title="Zoom Out"
+                    disabled={loading}
+                  >
+                    -
+                  </button>
+                  <button
+                    className={styles.floatingBtn}
+                    onClick={() => setZoomLevel(z => Math.min(3.0, z + 0.2))}
+                    title="Zoom In"
+                    disabled={loading}
+                  >
+                    +
+                  </button>
+                  <button
+                    className={styles.floatingBtn}
                     onClick={handleCopy}
                     title="Copy Raw ASCII to Clipboard"
                     disabled={loading}
@@ -939,7 +957,7 @@ export default function Home() {
                     🔍
                   </button>
                 </div>
-                <pre className={styles.preArt} style={{ opacity: loading ? 0.3 : 1 }}>{apodData.ascii}</pre>
+                <pre className={styles.preArt} style={{ opacity: loading ? 0.3 : 1, fontSize: `${7 * zoomLevel}px` }}>{apodData.ascii}</pre>
               </div>
 
               {/* System Telemetry Section */}
@@ -1055,12 +1073,20 @@ export default function Home() {
             <div className={styles.modalTitle}>
               🔍 Monospace Viewport — {apodData.source?.title || "Cosmic Art"}
             </div>
-            <button className={styles.modalCloseBtn} onClick={handleZoom}>
-              ✕
-            </button>
+            <div className={styles.modalControls}>
+              <button className={styles.modalControlBtn} onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.2))}>
+                -
+              </button>
+              <button className={styles.modalControlBtn} onClick={() => setZoomLevel(z => Math.min(3.0, z + 0.2))}>
+                +
+              </button>
+              <button className={styles.modalCloseBtn} onClick={handleZoom}>
+                ✕
+              </button>
+            </div>
           </div>
           <div className={styles.modalContent}>
-            <pre className={styles.modalPre}>{apodData.ascii}</pre>
+            <pre className={styles.modalPre} style={{ fontSize: `${7 * zoomLevel}px` }}>{apodData.ascii}</pre>
           </div>
         </div>
       )}
