@@ -407,4 +407,41 @@ aturalH * ratio + padding. Renders the entire ASCII image, scaled to fit, no scr
   - `npm run build` → compiled cleanly with zero TypeScript compiler or Turbopack bundling errors.
   - `npm test -- --run` → all 58 Vitest tests passed successfully.
 
+---
+
+## 28. Gallery Mobile Header Alignment (2026-07-07)
+* **Status:** Complete.
+* **Objective:** Synchronize the responsive mobile navigation design on the Gallery page with the Studio page.
+* **Decisions & Implementation Details:**
+  - Updated `src/app/gallery/page.tsx` and `src/app/gallery/page.module.css` so the nav links wrap and right-align on narrow screens and long user emails are truncated, preventing button text-wrapping issues.
+  - Verified with a successful production build and full Vitest test pass.
+* **Commit:** `eaf84fb` — `style: align gallery mobile header and navbar (resolves #gallery-mobile-header)`.
+
+---
+
+## 29. Connection Timeout & Dynamic Loading Progress Bar (2026-07-07)
+* **Status:** Complete.
+* **Objective:** Give users clear feedback during slow APOD/LLM fetches and prevent infinite waits with a client-side timeout.
+* **Decisions & Implementation Details:**
+  - Added a `progress` state and a `useEffect` interval ticker to `src/app/page.tsx` that animates a gradient loading bar through three phases: fast uplink (0–45%), telemetry download (45–80%), and slow creep (80–98%) before jumping to 100% on completion.
+  - Replaced the infinite spinner in the loading state with the responsive gradient bar and a percentage label.
+  - Added a 25-second `AbortController` timeout in `fetchApodData`; on timeout, the page clears the loading state and renders a friendly failure card explaining the connection timed out.
+  - Reset `apodData` to `null` on new date fetches so the full progress bar is shown during date transitions rather than only the recalculating overlay.
+* **Verification Results:**
+  - `npm run build` → compiled cleanly.
+  - `npm test` → all 58 Vitest tests passed.
+
+---
+
+## 30. Gallery "Scrub Log" Deletion Fix (2026-07-07)
+* **Status:** Complete.
+* **Objective:** Restore the delete action on saved gallery cards; the Scrub Log button was reported as unresponsive.
+* **Findings & Decisions:**
+  - The card-level `onClick` handler opens the details modal; the Scrub Log button already calls `e.stopPropagation()` to prevent that.
+  - The original handler used `confirm(...)` without a `window` guard, which can be unreliable in some SSR/client contexts. Updated `src/app/gallery/page.tsx` to use `typeof window !== "undefined" && window.confirm(...)`.
+  - After testing, the confirmation dialog and DELETE flow are both working; the issue was confirmed by a manual browser test. Removed temporary `console.log` debug statements added during investigation.
+* **Verification Results:**
+  - `npm run build` → compiled cleanly.
+  - `npm test` → all 58 Vitest tests passed.
+
 
