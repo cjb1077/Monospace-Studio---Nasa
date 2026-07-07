@@ -272,9 +272,6 @@
     padding: 0.75rem;
     gap: 1rem;
   }
-  .userStatus span {
-    max-width: 100px;
-  }
 }
 
 .glassCard {
