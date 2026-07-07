@@ -164,7 +164,9 @@ export default function Gallery() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to scrub this render from the space archive?")) return;
+    if (typeof window !== "undefined" && !window.confirm("Are you sure you want to scrub this render from the space archive?")) {
+      return;
+    }
     try {
       const response = await fetch(`/api/renders/${id}`, {
         method: "DELETE",
