@@ -298,6 +298,11 @@
   box-shadow: 0 0 25px rgba(139, 92, 246, 0.05), 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 }
 
+.authDropdown {
+  width: 280px;
+  max-width: calc(100vw - 2rem);
+}
+
 .cardHeader {
   display: flex;
   flex-direction: column;

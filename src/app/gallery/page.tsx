@@ -332,7 +332,7 @@ export default function Gallery() {
               </button>
 
               {showAuthDropdown && (
-                <div className={styles.glassCard} style={{
+                <div className={`${styles.glassCard} ${styles.authDropdown}`} style={{
                   position: "absolute",
                   right: 0,
                   top: "120%",
