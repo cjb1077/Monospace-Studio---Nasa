@@ -46,6 +46,7 @@ const getTodayEst = () => {
 
 export default function Home() {
   const [inputDate, setInputDate] = useState("");
+  const [progress, setProgress] = useState(0);
   const [activeDate, setActiveDate] = useState("");
   const [isMounted, setIsMounted] = useState(false);
   const todayEst = isMounted ? getTodayEst() : "";
@@ -157,6 +158,28 @@ export default function Home() {
     };
   }, [loading]);
 
+  // Dynamic progress loader ticking
+  useEffect(() => {
+    let intervalId: any;
+    if (loading) {
+      intervalId = setInterval(() => {
+        setProgress((prev) => {
+          if (prev < 45) {
+            return Math.min(prev + 1.5, 45); // First 3s goes to 45%
+          } else if (prev < 80) {
+            return Math.min(prev + 1.15, 80); // Next 3s goes to 80%
+          } else if (prev < 98) {
+            return Math.min(prev + 0.1, 98); // Slow creep to 98%
+          }
+          return prev;
+        });
+      }, 100);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [loading]);
+
   // Mount logic to calculate timezone date client-side and avoid hydration warnings
   useEffect(() => {
     const today = getTodayEst();
@@ -190,10 +213,22 @@ export default function Home() {
     setLoading(true);
     setIsCooldown(true);
     setError(null);
+    setProgress(0); // Reset progress
+
+    // Clear old data when loading a new date (not overrides)
+    if (!overrides || targetDate !== activeDate) {
+      setApodData(null);
+    }
 
     setTimeout(() => {
       setIsCooldown(false);
     }, 1500);
+
+    let isTimeout = false;
+    const timeoutId = setTimeout(() => {
+      isTimeout = true;
+      abortController.abort();
+    }, 25000); // 25-second client-side timeout
 
     try {
       let url = `/api/apod?date=${targetDate}`;
@@ -204,9 +239,11 @@ export default function Home() {
         }
       }
       const response = await fetch(url, { signal: abortController.signal });
+      clearTimeout(timeoutId);
       const data = (await response.json()) as ApodApiResponse;
 
       if (response.ok && data.ok) {
+        setProgress(100); // Jump to complete
         setApodData(data);
         if (!overrides && data.style) {
           setStyleOverride({ ...data.style, brightness: data.style.brightness ?? 0 });
@@ -215,7 +252,12 @@ export default function Home() {
         setError(data.error || "An error occurred while fetching cosmic data.");
       }
     } catch (err: any) {
-      if (err.name !== "AbortError") {
+      clearTimeout(timeoutId);
+      if (err.name === "AbortError") {
+        if (isTimeout) {
+          setError("Connection timed out due to slow internet. Please check your network and try again.");
+        }
+      } else {
         console.error(err);
         setError("A connection error occurred while reaching Monospace Studio API.");
       }
@@ -884,7 +926,13 @@ export default function Home() {
           {/* Main Output State Render: Loading, Skeletons & Cosmic Telemetry */}
           {loading && !apodData && (
             <div className={styles.loadingContainer}>
-              <div className={styles.spinner}></div>
+              <div className={styles.progressBarContainer}>
+                <div 
+                  className={styles.progressBarFill} 
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+              <div className={styles.progressPercent}>{Math.round(progress)}%</div>
               <div className={styles.telemetryLogContainer}>
                 <div className={styles.telemetryLogText}>
                   {loaderStep >= 0 && "📡 Uplinking with NASA planetary directory..."}
