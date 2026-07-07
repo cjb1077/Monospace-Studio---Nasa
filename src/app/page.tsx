@@ -291,7 +291,8 @@ export default function Home() {
       const safeTitle = title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
+        .replace(/^_+/g, "")
+        .replace(/_+$/g, "");
       link.download = `${safeTitle}_ascii.txt`;
       
       // 4. Trigger download and cleanup
