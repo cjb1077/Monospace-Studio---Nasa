@@ -1,18 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fetchApod, ApodError, downloadImage, withNasaRetry } from "../src/lib/nasa/apod";
 
+/** Builds a science.nasa.gov apod-basic entry (image file lives in hdurl). */
+function nasaEntry(overrides: Record<string, unknown> = {}) {
+  return {
+    date: "2023-01-01",
+    title: "Test APOD Title",
+    explanation:
+      "<strong>Explanation:</strong> Test APOD <a href=\"https://example.com\">explanation</a> text.<br><br><strong>Tomorrow's picture: </strong>Something else",
+    media_type: "image",
+    url: "https://science.nasa.gov/image-article/apod-test/",
+    hdurl: "https://assets.science.nasa.gov/test.jpg?w=1600",
+    ...overrides,
+  };
+}
+
 describe("NASA APOD API integration", () => {
-  const originalApiKey = process.env.NASA_API_KEY;
   const originalFetch = global.fetch;
   const mockFetch = vi.fn();
 
   beforeEach(() => {
-    process.env.NASA_API_KEY = "test_api_key";
     global.fetch = mockFetch;
   });
 
   afterEach(() => {
-    process.env.NASA_API_KEY = originalApiKey;
     global.fetch = originalFetch;
     mockFetch.mockReset();
   });
@@ -53,15 +64,6 @@ describe("NASA APOD API integration", () => {
     });
   });
 
-  describe("API Key check", () => {
-    it("should throw a SERVER error if NASA_API_KEY is not configured", async () => {
-      delete process.env.NASA_API_KEY;
-      await expect(fetchApod()).rejects.toThrowError(
-        new ApodError("NASA_API_KEY is not configured.", "SERVER", 500)
-      );
-    });
-  });
-
   describe("Date validation", () => {
     it("should throw a BAD_DATE error for invalid date format", async () => {
       await expect(fetchApod("2026-6-28")).rejects.toThrowError(
@@ -88,20 +90,13 @@ describe("NASA APOD API integration", () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({
-          date: "2023-01-01",
-          title: "Test APOD Title",
-          explanation: "Test APOD Explanation text.",
-          media_type: "image",
-          url: "https://example.com/image.jpg",
-          service_version: "v1",
-        }),
+        json: async () => nasaEntry(),
       });
 
       const data = await fetchApod("2023-01-01");
       expect(data.date).toBe("2023-01-01");
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.nasa.gov/planetary/apod?api_key=test_api_key&date=2023-01-01",
+        "https://science.nasa.gov/wp-json/wp/v2/apod-basic/230101",
         expect.any(Object)
       );
     });
@@ -109,24 +104,65 @@ describe("NASA APOD API integration", () => {
 
   describe("API Fetch and Error Handling", () => {
     it("should parse and return valid image APOD response", async () => {
-      const mockResponse = {
-        date: "2026-06-28",
-        title: "The Stars Above",
-        explanation: "Beautiful view of the starry sky.",
-        media_type: "image",
-        url: "https://example.com/apod.jpg",
-        copyright: "NASA",
-        service_version: "v1",
-      };
-
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => mockResponse,
+        json: async () =>
+          nasaEntry({
+            date: "2026-06-28",
+            title: "The Stars &amp; Above",
+            copyright: "<a href=\"https://example.com\">NASA</a>",
+          }),
       });
 
       const result = await fetchApod("2026-06-28");
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual({
+        date: "2026-06-28",
+        title: "The Stars & Above",
+        explanation: "Test APOD explanation text.",
+        media_type: "image",
+        url: "https://assets.science.nasa.gov/test.jpg?w=1600",
+        copyright: "NASA",
+        service_version: "v1",
+      });
+    });
+
+    it("should request the newest entry when no date is given and unwrap the list", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [nasaEntry({ date: "2026-10-15" })],
+      });
+
+      const result = await fetchApod();
+      expect(result.date).toBe("2026-10-15");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://science.nasa.gov/wp-json/wp/v2/apod-basic?per_page=1",
+        expect.any(Object)
+      );
+    });
+
+    it("should throw NOT_FOUND when NASA has no entry for the requested date", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+      });
+
+      await expect(fetchApod("2023-01-01")).rejects.toMatchObject({
+        code: "NOT_FOUND",
+        status: 404,
+      });
+    });
+
+    it("should retry a transient 403 bot challenge and then succeed", async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: false, status: 403, statusText: "Forbidden" })
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => nasaEntry() });
+
+      const result = await fetchApod("2023-01-01");
+      expect(result.title).toBe("Test APOD Title");
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     it("should throw a NASA_RATE_LIMIT error on 429 status code", async () => {
@@ -195,26 +231,13 @@ describe("NASA APOD API integration", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => ({
-            date: "2026-06-28",
-            title: "Space Video",
-            explanation: "Some explanation",
-            media_type: "video",
-            url: "https://example.com/video.mp4",
-            service_version: "v1",
-          }),
+          json: async () =>
+            nasaEntry({ date: "2026-06-28", title: "Space Video", media_type: "video", hdurl: "" }),
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => ({
-            date: "2026-06-27",
-            title: "Space Image",
-            explanation: "Beautiful space image explanation",
-            media_type: "image",
-            url: "https://example.com/image.png",
-            service_version: "v1",
-          }),
+          json: async () => nasaEntry({ date: "2026-06-27", title: "Space Image" }),
         });
 
       const result = await fetchApod("2026-06-28");
@@ -230,14 +253,8 @@ describe("NASA APOD API integration", () => {
         mockFetch.mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => ({
-            date: `2026-06-${28 - i}`,
-            title: `Video Day ${i}`,
-            explanation: "Prose explaining video",
-            media_type: "video",
-            url: "https://example.com/video.mp4",
-            service_version: "v1",
-          }),
+          json: async () =>
+              nasaEntry({ date: `2026-06-${28 - i}`, title: `Video Day ${i}`, media_type: "video", hdurl: "" }),
         });
       }
 
@@ -253,26 +270,14 @@ describe("NASA APOD API integration", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => ({
-            date: "1995-06-17",
-            title: "Early Video 1",
-            explanation: "Some early video",
-            media_type: "video",
-            url: "https://example.com/video.mp4",
-            service_version: "v1",
-          }),
+          json: async () =>
+            nasaEntry({ date: "1995-06-17", title: "Early Video 1", media_type: "video", hdurl: "" }),
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => ({
-            date: "1995-06-16",
-            title: "Early Video 2",
-            explanation: "Some early video",
-            media_type: "video",
-            url: "https://example.com/video.mp4",
-            service_version: "v1",
-          }),
+          json: async () =>
+            nasaEntry({ date: "1995-06-16", title: "Early Video 2", media_type: "video", hdurl: "" }),
         });
 
       const result = await fetchApod("1995-06-17");

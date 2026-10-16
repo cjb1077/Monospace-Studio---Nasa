@@ -100,6 +100,31 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 // ---------------------------------------------------------------------------
+// Provider-specific request params
+// ---------------------------------------------------------------------------
+
+/**
+ * Anthropic's OpenAI-compatible endpoint differs from other backends:
+ *  - `temperature` is rejected on newer Claude models (400 deprecated)
+ *  - `response_format: json_object` is rejected (only json_schema is accepted)
+ *  - thinking must be disabled, otherwise hidden reasoning consumes the small
+ *    max_tokens budget and `content` comes back empty (finish_reason: length)
+ * Other providers keep the standard params.
+ */
+function providerParams(
+  provider: string,
+  temperature: number,
+  json: boolean
+): Record<string, unknown> {
+  if (provider === "anthropic") {
+    return { thinking: { type: "disabled" } };
+  }
+  return json
+    ? { temperature, response_format: { type: "json_object" } }
+    : { temperature };
+}
+
+// ---------------------------------------------------------------------------
 // createChatCompletion — general text
 // ---------------------------------------------------------------------------
 
@@ -114,8 +139,8 @@ export async function createChatCompletion(
     client.chat.completions.create({
       model,
       messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
-      temperature,
       max_tokens: maxTokens,
+      ...providerParams(provider, temperature, false),
     })
   );
 
@@ -173,9 +198,8 @@ export async function createJsonCompletion<T>(
       client.chat.completions.create({
         model,
         messages: messages as OpenAI.Chat.ChatCompletionMessageParam[],
-        temperature,
         max_tokens: maxTokens,
-        response_format: { type: "json_object" },
+        ...providerParams(provider, temperature, true),
       })
     );
 

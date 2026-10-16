@@ -445,3 +445,23 @@ aturalH * ratio + padding. Renders the entire ASCII image, scaled to fit, no scr
   - `npm test` → all 58 Vitest tests passed.
 
 
+
+---
+
+## 31. Anthropic LLM provider + NASA APOD endpoint migration (2026-10-16)
+* **Status:** Complete (uncommitted at time of writing).
+* **Conflict with IMPLEMENTATION.md:** the plan assumes `api.nasa.gov/planetary/apod` with `NASA_API_KEY`, and an OpenAI-compatible provider list of LM Studio / Trussed / OpenAI. Reality changed on both fronts; the plan docs were not rewritten here.
+* **LLM — new `anthropic` provider** (`src/lib/llm/config.ts`, `src/lib/llm/chat.ts`):
+  - Uses Anthropic's OpenAI-compatible endpoint (`https://api.anthropic.com/v1/`) with `ANTHROPIC_API_KEY`; default model `claude-haiku-5-5`.
+  - Required request adjustments (isolated in `providerParams` in `chat.ts`): omit `temperature` (400 deprecated), omit `response_format: json_object` (only `json_schema` accepted), and send `thinking: { type: "disabled" }` (otherwise hidden reasoning exhausts the small `max_tokens` and `content` is empty).
+  - Symptom when these were missing: both AI features silently fell back (`aiStyleUsed/aiCaptionUsed: false`) and those fallback rows were written to `cached_apods`.
+* **NASA — APOD moved** to `https://science.nasa.gov/wp-json/wp/v2/apod-basic` (no API key). `api.nasa.gov/planetary/apod` now returns a generic "NASA Science" placeholder or 5xx.
+  - Single entry: `/apod-basic/<YYMMDD>`; newest: `?per_page=1` (returns a list). Date/range query params were unreliable.
+  - `explanation` is HTML (leading "Explanation:", trailing "Tomorrow's picture"); image file is `hdurl`, `url` is the article page. `normalizeApod` in `src/lib/nasa/apod.ts` maps this onto the existing `NasaApodResponse` shape so the route/UI are unchanged.
+  - Endpoint is slow uncached (10–18s) → per-call timeout raised 10s → 20s. NASA's bot protection intermittently returns 403 on bursts → 403 added to retryable statuses. 404 on an explicit date → `NOT_FOUND`.
+  - `NASA_API_KEY` is no longer read by the code.
+* **Known follow-up:** `cached_apods` may hold stale fallback rows (`ai_*_used = false`) from the failed Anthropic runs and placeholder rows from the old API; they keep being served until deleted.
+* **Verification Results:**
+  - `npx tsc --noEmit` → no errors.
+  - `npx vitest run` → 60 passed, 0 failed (NASA tests rewritten for the new endpoint, incl. 403 retry, 404, list unwrap).
+  - Live: `/api/apod?date=2026-10-10` → real image, `aiStyleUsed: true`, `aiCaptionUsed: true`, ~5s.

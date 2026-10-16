@@ -8,6 +8,7 @@
  *  - openai-compatible  →  LM Studio / Ollama (local dev default)
  *  - trussed            →  FAU Trussed proxy  (demo / deploy)
  *  - openai             →  Direct OpenAI
+ *  - anthropic          →  Claude via Anthropic's OpenAI-compatible endpoint
  */
 
 export interface LlmConfig {
@@ -38,6 +39,26 @@ export function getLlmConfig(): LlmConfig {
         );
       }
       return { apiKey, baseURL, model, provider };
+    }
+
+    case "anthropic": {
+      // Uses Anthropic's OpenAI-compatible endpoint, so the `openai` client
+      // is reused unchanged.
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      const baseURL =
+        process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com/v1/";
+      if (!apiKey) {
+        throw new Error(
+          "LLM config error: ANTHROPIC_API_KEY is not set. " +
+            "Add it to .env.local and restart the dev server."
+        );
+      }
+      return {
+        apiKey,
+        baseURL,
+        model: process.env.LLM_MODEL ?? "claude-haiku-5-5",
+        provider,
+      };
     }
 
     case "openai": {

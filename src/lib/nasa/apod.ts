@@ -8,7 +8,8 @@ export class ApodError extends Error {
 }
 
 export async function withNasaRetry<T>(fn: () => Promise<T>): Promise<T> {
-  const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
+  // 403: science.nasa.gov's bot protection intermittently challenges bursts
+  const RETRYABLE_STATUS = new Set([403, 429, 502, 503, 504]);
   const MAX_ATTEMPTS = 3;
   let lastError: unknown;
 
@@ -66,12 +67,74 @@ function decrementDate(dateStr: string): string {
   return `${y}-${m}-${d}`;
 }
 
-export async function fetchApod(date?: string): Promise<NasaApodResponse> {
-  const apiKey = process.env.NASA_API_KEY;
-  if (!apiKey) {
-    throw new ApodError("NASA_API_KEY is not configured.", "SERVER", 500);
+// NASA moved APOD from api.nasa.gov/planetary/apod to a WordPress REST endpoint
+// (no API key). Entries are addressable by YYMMDD id; with no id the list is
+// returned newest-first.
+const APOD_BASE_URL = "https://science.nasa.gov/wp-json/wp/v2/apod-basic";
+const APOD_TIMEOUT_MS = 20000; // the endpoint regularly takes 10-18s uncached
+
+interface RawApodEntry {
+  date?: string;
+  title?: string;
+  explanation?: string;
+  media_type?: string;
+  copyright?: string;
+  url?: string;
+  hdurl?: string;
+}
+
+function toYymmdd(dateStr: string): string {
+  return dateStr.slice(2).replace(/-/g, "");
+}
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&");
+}
+
+function htmlToText(html: string): string {
+  // Block-level breaks become spaces; inline tags (links, emphasis) vanish so
+  // punctuation stays attached to the word before it.
+  const text = html.replace(/<(br|\/p|\/div)\b[^>]*>/gi, " ").replace(/<[^>]*>/g, "");
+  return decodeEntities(text).replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Maps a science.nasa.gov entry onto the NasaApodResponse shape the rest of the
+ * app already uses. `explanation` is HTML there (with a leading "Explanation:"
+ * label and a trailing "Tomorrow's picture" teaser), and the image file is in
+ * `hdurl` — `url` is the article page.
+ */
+function normalizeApod(raw: RawApodEntry): NasaApodResponse {
+  const explanationHtml = (raw.explanation ?? "").split(/<br\s*\/?>\s*<br\s*\/?>\s*<strong>\s*Tomorrow/i)[0];
+  const explanation = htmlToText(explanationHtml).replace(/^Explanation:\s*/i, "");
+  const title = htmlToText(raw.title ?? "");
+  const isImage = raw.media_type === "image";
+  const url = isImage ? raw.hdurl ?? "" : raw.url ?? "";
+
+  if (!raw.date || !title || !explanation || !raw.media_type || !url) {
+    throw new ApodError("Incomplete response from NASA APOD API.", "NASA_DOWN", 502);
   }
 
+  const copyright = raw.copyright ? htmlToText(raw.copyright) : undefined;
+  return {
+    date: raw.date,
+    title,
+    explanation,
+    media_type: raw.media_type,
+    url,
+    ...(copyright ? { copyright } : {}),
+    service_version: "v1",
+  };
+}
+
+export async function fetchApod(date?: string): Promise<NasaApodResponse> {
   if (date) {
     validateDate(date);
   }
@@ -82,10 +145,9 @@ export async function fetchApod(date?: string): Promise<NasaApodResponse> {
   let originalRequestedDate = date;
 
   while (attempts < maxAttempts) {
-    let url = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}`;
-    if (currentDate) {
-      url += `&date=${currentDate}`;
-    }
+    const url = currentDate
+      ? `${APOD_BASE_URL}/${toYymmdd(currentDate)}`
+      : `${APOD_BASE_URL}?per_page=1`;
 
     if (attempts > 0) {
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -93,13 +155,20 @@ export async function fetchApod(date?: string): Promise<NasaApodResponse> {
 
     const data = await withNasaRetry(async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), APOD_TIMEOUT_MS);
       try {
-        const res = await fetch(url, { signal: controller.signal });
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: { Accept: "application/json" },
+        });
         clearTimeout(timeoutId);
 
         if (res.status === 429) {
           throw new ApodError("NASA API rate limit exceeded.", "NASA_RATE_LIMIT", 429);
+        }
+
+        if (res.status === 404 && currentDate) {
+          throw new ApodError(`No APOD found for ${currentDate}.`, "NOT_FOUND", 404);
         }
 
         if (!res.ok) {
@@ -117,11 +186,12 @@ export async function fetchApod(date?: string): Promise<NasaApodResponse> {
           throw new ApodError(errMsg, "NASA_DOWN", res.status);
         }
 
-        const parsed = await res.json() as NasaApodResponse;
-        if (!parsed.url || !parsed.title || !parsed.explanation || !parsed.media_type) {
+        const body = (await res.json()) as RawApodEntry | RawApodEntry[];
+        const entry = Array.isArray(body) ? body[0] : body;
+        if (!entry) {
           throw new ApodError("Incomplete response from NASA APOD API.", "NASA_DOWN", 502);
         }
-        return parsed;
+        return normalizeApod(entry);
       } catch (error: any) {
         clearTimeout(timeoutId);
         if (error instanceof ApodError) {
